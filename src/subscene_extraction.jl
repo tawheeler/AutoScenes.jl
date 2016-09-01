@@ -36,8 +36,8 @@ function is_in_bounds(scene::Scene, scene_params::SubSceneExtractParams)
     for i in 1 : length(scene)
         veh = scene.vehicles[i]
         p_rel = inertial2body(veh.state.posG, scene_params.center)
-        max_dist_front = max(max_dist_front, p_rel.x + veh.length/2)
-        max_dist_rear = min(max_dist_rear, p_rel.x - veh.length/2)
+        max_dist_front = max(max_dist_front, p_rel.x + veh.def.length/2)
+        max_dist_rear = min(max_dist_rear, p_rel.x - veh.def.length/2)
     end
 
     max_dist_front ≥ scene_params.length/2 &&
@@ -48,6 +48,9 @@ end
 True if there is is always headway separation between all vehicles
 """
 function is_there_longitudinal_room(scene::Scene, roadway::Roadway, vehicle_indeces::AbstractVector{Int}=1:length(scene))
+
+    F = VehicleTargetPointFront()
+    R = VehicleTargetPointRear()
 
     for vehicle_index in vehicle_indeces
 

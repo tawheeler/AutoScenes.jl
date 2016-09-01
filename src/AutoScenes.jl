@@ -35,7 +35,10 @@ export
     is_scene_well_behaved,
     pull_subscene,
 
-    SceneStructureDataset
+    SceneStructureDataset,
+
+    get_scene_and_structure!,
+    pull_scene_dataset
 
 include(Pkg.dir("AutoScenes", "src", "features.jl"))
 include(Pkg.dir("AutoScenes", "src", "factors.jl"))

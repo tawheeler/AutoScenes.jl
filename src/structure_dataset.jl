@@ -9,8 +9,8 @@ type SceneStructureDataset
     structures::Vector{SceneStructure}
     factors::Vector{SharedFactor}
 end
-Base.length(dset::SceneStructureDataset) = length(dset.subscenes)
-function nvehicles(dset::SceneDataset)
+Base.length(dset::SceneStructureDataset) = length(dset.structures)
+function nvehicles(dset::SceneStructureDataset)
     count = 0
     for subscene in dset.subscenes
         count += length(subscene.vehicle_indeces)
@@ -28,9 +28,9 @@ end
 
 function pull_scene_dataset(
     trajdata::Trajdata,
-    extractparams::SubSceneExtractParams,
-    factors::Vector{SharedFactor};
+    extractparams::SubSceneExtractParams;
 
+    factors::Vector{SharedFactor}=create_shared_factors(),
     scene::Scene=Scene(),
     max_sample_size::Int = typemax(Int),
     mem::CPAMemory=CPAMemory(),
@@ -56,10 +56,10 @@ function pull_scene_dataset(
             end
         end
 
-        if length(scenes) ≥ max_sample_size
+        if length(sources) ≥ max_sample_size
             break
         end
     end
 
-    SceneDataset([trajdata], sources, structures, factors)
+    SceneStructureDataset([trajdata], sources, structures, factors)
 end
