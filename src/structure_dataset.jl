@@ -18,12 +18,12 @@ function nvehicles(dset::SceneStructureDataset)
     count
 end
 
-function get_scene_and_structure!(scene::Scene, dset::SceneStructureDataset, index::Int)
+function get_scene_structure_and_roadway!(scene::Scene, dset::SceneStructureDataset, index::Int)
     subscene = dset.sources[index]
     trajdata = dset.trajdatas[subscene.trajdata_index]
     get!(scene, trajdata, subscene.frame)
     structure = dset.structures[index]
-    (scene, structure)
+    (scene, structure, trajdata.roadway)
 end
 
 function pull_scene_dataset(

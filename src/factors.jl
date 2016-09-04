@@ -6,7 +6,7 @@ type SharedFactor
     function SharedFactor(
         template::GraphFeatureTemplate,
         instances::Vector{GraphFeatureInstance},
-        weights::Vector{Float64} = rand(Float64, length(instances)),
+        weights::Vector{Float64} = 0.001*rand(Float64, length(instances)),
         )
 
         new(template, instances, weights)
@@ -25,8 +25,8 @@ end
 function evaluate_dot(factor::SharedFactor)
     # NOTE: extract! must have already been called
     retval = 0.0
-    for i in 1 : length(instances)
-        v = evaluate(factor.template, factor.instance)
+    for i in 1 : length(factor.instances)
+        v = evaluate(factor.template, factor.instances[i])
         retval += factor.weights[i]*v
     end
     retval

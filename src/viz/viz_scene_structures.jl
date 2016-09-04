@@ -1,6 +1,7 @@
 export
     SceneStructureOverlay,
-    SubSceneExtractParamsOverlay
+    SubSceneExtractParamsOverlay,
+    StructureFollowCamera
 
 function AutoViz.render!(rendermodel::RenderModel, structure::SceneStructure, scene::Scene;
     line_width = 0.25, # m
@@ -90,3 +91,31 @@ function AutoViz.render!(rendermodel::RenderModel, poly::ConvexPolygon, color::C
     rendermodel
 end
 AutoViz.render!(rendermodel::RenderModel, overlay::SubSceneExtractParamsOverlay, scene::Scene, roadway::Roadway) = render!(rendermodel, overlay.scene_extract.box, overlay.color, overlay.line_width)
+
+type StructureFollowCamera <: Camera
+    structure::SceneStructure
+    zoom::Float64 # [pix/meter]
+    StructureFollowCamera(structure::SceneStructure, zoom::Float64=3.0) = new(structure, zoom)
+end
+function AutoViz.camera_set!(rendermodel::RenderModel, cam::StructureFollowCamera, scene::Scene, roadway::Roadway, canvas_width::Int, canvas_height::Int)
+
+
+    if length(cam.structure.active_vehicles) > 0
+
+        # get camera center
+        C = VecE2(0.0,0.0)
+        for vehicle_index in cam.structure.active_vehicles
+            veh = scene[vehicle_index]
+            C += convert(VecE2, veh.state.posG)
+        end
+        C = C / length(cam.structure.active_vehicles)
+
+        camera_set_pos!(rendermodel, C)
+        camera_setzoom!(rendermodel, cam.zoom)
+    else
+        add_instruction!( rendermodel, render_text, ("StructureFollowCamera did not find any vehicles", 10, 15, 15, colorant"white"), incameraframe=false)
+        camera_fit_to_content!(rendermodel, canvas_width, canvas_height, 0.1)
+    end
+
+    rendermodel
+end
