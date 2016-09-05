@@ -111,7 +111,7 @@ function uses_s(instance::GraphFeatureInstance)
         return instance.exponents[1] > 0
     elseif instance.form == FeatureForms.NEIGHBOR
         return true
-    else
+    end
     false
 end
 function uses_t(instance::GraphFeatureInstance)
@@ -119,7 +119,7 @@ function uses_t(instance::GraphFeatureInstance)
         return instance.exponents[1] > 0
     elseif instance.form == FeatureForms.NEIGHBOR
         return true
-    else
+    end
     false
 end
 function uses_v(instance::GraphFeatureInstance)
@@ -129,7 +129,7 @@ function uses_v(instance::GraphFeatureInstance)
         return instance.exponents[2] > 0
     elseif instance.form == FeatureForms.NEIGHBOR
         return true
-    else
+    end
     false
 end
 function uses_ϕ(instance::GraphFeatureInstance)
@@ -137,7 +137,7 @@ function uses_ϕ(instance::GraphFeatureInstance)
         return instance.exponents[3] > 0
     elseif instance.form == FeatureForms.NEIGHBOR
         return true
-    else
+    end
     false
 end
 
@@ -152,4 +152,4 @@ const FEATURE_TEMPLATE_FOLLOW = GraphFeatureTemplate(FeatureForms.FOLLOW,
          Normal( 0.184,  4.203*10), # Δv
         ]
     )
-const FEATURE_TEMPLATE_NEIGHBOR = GraphFeatureTemplate(FeatureForms.NEIGHBOR, Normal[])
+const FEATURE_TEMPLATE_NEIGHBOR = GraphFeatureTemplate(FeatureForms.NEIGHBOR, Array(Normal, 2))

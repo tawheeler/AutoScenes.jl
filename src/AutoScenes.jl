@@ -55,7 +55,8 @@ export
     # learning
     PseudolikelihoodPrealloc,
 
-    calc_pseudolikelihood
+    calc_pseudolikelihood,
+    calc_pseudolikelihood_gradient
 
 include(Pkg.dir("AutoScenes", "src", "features.jl"))
 include(Pkg.dir("AutoScenes", "src", "factors.jl"))

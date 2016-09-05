@@ -13,6 +13,12 @@ immutable PseudolikelihoodPrealloc
     end
 end
 
+function posF_matches_posG(state::VehicleState, roadway::Roadway)
+    posG = state.posG
+    posF = get_posG(state.posF, roadway)
+    abs(posG - posF) < 0.15
+end
+
 function get_relative_variable_bounds_s(scene::Scene, structure::SceneStructure, roadway::Roadway, vehicle_index::Int)
     veh_rear = scene[vehicle_index]
     veh_fore = scene[structure.lead_follow.index_fore[vehicle_index]]
@@ -24,7 +30,6 @@ function get_relative_variable_bounds_s(scene::Scene, structure::SceneStructure,
     relpos = get_frenet_relative_position(veh_fore, veh_rear, roadway)
     @assert(relpos.Δs ≥ 0.0)
     Δs_rear = relpos.Δs - veh_rear.def.length/2 -  veh_fore.def.length/2
-
     (-Δs_rear, Δs_fore) # NOTE: these are relative to the current s
 end
 function get_relative_variable_bounds_t(rec::SceneRecord, roadway::Roadway, vehicle_index::Int)
@@ -33,8 +38,8 @@ function get_relative_variable_bounds_t(rec::SceneRecord, roadway::Roadway, vehi
     (-d_right, d_left)  # NOTE: these are relative to the current t
 end
 function get_relative_variable_bounds_v(scene::Scene, vehicle_index::Int)
-     v = scene[vehicle_index].state.v
-     (-1.0-v, 32.0-v) # [m/s]
+    v = scene[vehicle_index].state.v
+    (-1.0-v, 32.0-v) # [m/s]
 end
 function get_relative_variable_bounds_ϕ(scene::Scene, vehicle_index::Int)
     ϕ = scene[vehicle_index].state.posF.ϕ
@@ -52,7 +57,7 @@ function set_t!(veh::Vehicle, state_original::VehicleState, roadway::Roadway, va
     veh
 end
 function set_v!(veh::Vehicle, state_original::VehicleState, roadway::Roadway, value_delta::Float64)
-    veh.state = VehicleState(f, roadway, state_original.v+value_delta)
+    veh.state = VehicleState(state_original.posG, state_original.posF, state_original.v+value_delta)
     veh
 end
 function set_ϕ!(veh::Vehicle, state_original::VehicleState, roadway::Roadway, value_delta::Float64)
@@ -62,7 +67,7 @@ function set_ϕ!(veh::Vehicle, state_original::VehicleState, roadway::Roadway, v
     f = state_original.posF
     new_posF = Frenet(f.roadind, f.s, f.t, f.ϕ+value_delta)
 
-    veh.state = VehicleState(posG, posF, state_original.v)
+    veh.state = VehicleState(new_posG, new_posF, state_original.v)
     veh
 end
 
@@ -90,7 +95,7 @@ function _update_lnP_tilde_denom_arr_s!(
     Δv = Δlo
     Δval = (Δhi - Δlo) / (nsamples-1)
     for k in 1 : nsamples
-        
+
         set_s!(veh, state_original, roadway, Δv)
         extract!(ϕ, scene, roadway, vehicle_indeces)
 
@@ -219,10 +224,15 @@ function _get_logP_tilde_denom(lnP_tilde_denom_arr::Vector{Float64}, volume::Flo
     for v in lnP_tilde_denom_arr
         P_tilde_denom += exp(v)
     end
-    println("lnP_tilde_denom_arr:               ", lnP_tilde_denom_arr)
-    println("P_tilde_denom:                     ", P_tilde_denom)
-    println("volume:                            ", volume)
-    println("n_samples_monte_carlo_integration: ", n_samples_monte_carlo_integration)
+
+    # DEBUG
+    blah = P_tilde_denom * volume/n_samples_monte_carlo_integration
+    if isinf(blah) || isnan(blah) || blah ≤ 0.0
+        println("lnP_tilde_denom_arr:               ", lnP_tilde_denom_arr)
+        println("P_tilde_denom:                     ", P_tilde_denom)
+        println("volume:                            ", volume)
+        println("n_samples_monte_carlo_integration: ", n_samples_monte_carlo_integration)
+    end
     log(P_tilde_denom * volume/n_samples_monte_carlo_integration)
 end
 
@@ -241,6 +251,10 @@ function calc_pseudolikelihood(dset::SceneStructureDataset;
         scene, structure, roadway = get_scene_structure_and_roadway!(scene, dset, m)
         update!(rec, scene)
 
+        for veh in scene
+            @assert(posF_matches_posG(veh.state, roadway))
+        end
+
         for vehicle_index in structure.active_vehicles
 
             lnP_tilde = 0.0
@@ -254,11 +268,26 @@ function calc_pseudolikelihood(dset::SceneStructureDataset;
             Δlo_v, Δhi_v = get_relative_variable_bounds_v(scene, vehicle_index)
             Δlo_ϕ, Δhi_ϕ = get_relative_variable_bounds_ϕ(scene, vehicle_index)
 
-            println("vehicle_index: ", vehicle_index)
-            println("s: ", Δlo_s, "  ", Δhi_s)
-            println("t: ", Δlo_t, "  ", Δhi_t)
-            println("v: ", Δlo_v, "  ", Δhi_v)
-            println("ϕ: ", Δlo_ϕ, "  ", Δhi_ϕ)
+            if Δhi_s - Δlo_s < 0.0
+                println("m: ", m)
+                println("vehicle_index: ", vehicle_index)
+                println("s: ", Δlo_s, "  ", Δhi_s)
+            end
+            if Δhi_t - Δlo_t < 0.0
+                println("t: ", Δlo_t, "  ", Δhi_t)
+            end
+            if Δhi_v - Δlo_v < 0.0
+                println("v: ", Δlo_v, "  ", Δhi_v)
+            end
+            if Δhi_ϕ - Δlo_ϕ < 0.0
+                println("ϕ: ", Δlo_ϕ, "  ", Δhi_ϕ)
+            end
+
+            # println("vehicle_index: ", vehicle_index)
+            # println("s: ", Δlo_s, "  ", Δhi_s)
+            # println("t: ", Δlo_t, "  ", Δhi_t)
+            # println("v: ", Δlo_v, "  ", Δhi_v)
+            # println("ϕ: ", Δlo_ϕ, "  ", Δhi_ϕ)
 
             for fa in structure.factor_assignments
 
@@ -307,7 +336,7 @@ function calc_pseudolikelihood_gradient_component_s(
     n_samples_monte_carlo_integration::Int,
     rng::AbstractRNG,
     )
-  
+
     Δlo, Δhi = get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
     volume = Δhi - Δlo
 
@@ -356,7 +385,7 @@ function calc_pseudolikelihood_gradient_component_t(
     n_samples_monte_carlo_integration::Int,
     rng::AbstractRNG,
     )
-  
+
     Δlo, Δhi = get_relative_variable_bounds_t(scene, structure, roadway, vehicle_index)
     volume = Δhi - Δlo
 
@@ -405,7 +434,7 @@ function calc_pseudolikelihood_gradient_component_v(
     n_samples_monte_carlo_integration::Int,
     rng::AbstractRNG,
     )
-  
+
     Δlo, Δhi = get_relative_variable_bounds_v(scene, structure, roadway, vehicle_index)
     volume = Δhi - Δlo
 
@@ -454,7 +483,7 @@ function calc_pseudolikelihood_gradient_component_ϕ(
     n_samples_monte_carlo_integration::Int,
     rng::AbstractRNG,
     )
-  
+
     Δlo, Δhi = get_relative_variable_bounds_ϕ(scene, structure, roadway, vehicle_index)
     volume = Δhi - Δlo
 
@@ -507,12 +536,12 @@ function calc_pseudolikelihood_gradient(
     )
 
     retval = 0.0
-    ϕ = dset.factors[factor_index]
+    ϕ = dset.factors[form]
     target_instance = ϕ.instances[feature_index]
 
     for m in 1 : batch_size
 
-        scene, structure, roadway = get_scene_structure_data_roadway(dset, m)
+        scene, structure, roadway = get_scene_structure_and_roadway(dset, m)
 
         for fa in structure.factor_assignments
             if fa.form == form # is the correct factor
