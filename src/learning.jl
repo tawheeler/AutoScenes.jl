@@ -41,6 +41,31 @@ function get_relative_variable_bounds_ϕ(scene::Scene, vehicle_index::Int)
     (-0.82-ϕ, 0.82-ϕ) # [rad]
 end
 
+function set_s!(veh::Vehicle, state_original::VehicleState, roadway::Roadway, value_delta::Float64)
+    veh.state = move_along(state_original, roadway, value_delta)
+    veh
+end
+function set_t!(veh::Vehicle, state_original::VehicleState, roadway::Roadway, value_delta::Float64)
+    f = state_original.posF
+    new_frenet = Frenet(f.roadind, f.s, f.t+value_delta, f.ϕ)
+    veh.state = VehicleState(new_frenet, roadway, state_original.v)
+    veh
+end
+function set_v!(veh::Vehicle, state_original::VehicleState, roadway::Roadway, value_delta::Float64)
+    veh.state = VehicleState(f, roadway, state_original.v+value_delta)
+    veh
+end
+function set_ϕ!(veh::Vehicle, state_original::VehicleState, roadway::Roadway, value_delta::Float64)
+    g = state_original.posG
+    new_posG = VecSE2(g.x, g.y, g.θ + value_delta)
+
+    f = state_original.posF
+    new_posF = Frenet(f.roadind, f.s, f.t, f.ϕ+value_delta)
+
+    veh.state = VehicleState(posG, posF, state_original.v)
+    veh
+end
+
 function _update_lnP_tilde_denom_arr_s!(
     dat::PseudolikelihoodPrealloc,
     ϕ::SharedFactor,
@@ -58,15 +83,15 @@ function _update_lnP_tilde_denom_arr_s!(
     #   vary v and compute the denominator term, ∫ᵥ p(v | ~) dv
     #   use Monte Carlo integration to get ∫ₐ P(a , x₋ⱼ) ≈ V/N ∑ₐ P(a , x₋ⱼ) where V is domain width
 
-    # reset original state
+    # get original state
     veh = scene[vehicle_index]
     state_original = veh.state
-    f = state_original.posF
 
     Δv = Δlo
     Δval = (Δhi - Δlo) / (nsamples-1)
     for k in 1 : nsamples
-        veh.state = move_along(state_original, roadway, Δv)
+        
+        set_s!(veh, state_original, roadway, Δv)
         extract!(ϕ, scene, roadway, vehicle_indeces)
 
         if evaluate_dot(ϕ) > 1000.0
@@ -102,15 +127,11 @@ function _update_lnP_tilde_denom_arr_t!(
     # reset original state
     veh = scene[vehicle_index]
     state_original = veh.state
-    f = state_original.posF
 
     Δv = Δlo
     Δval = (Δhi - Δlo) / (nsamples-1)
     for k in 1 : nsamples
-
-        new_frenet = Frenet(f.roadind, f.s, f.t+Δv, f.ϕ)
-        veh.state = VehicleState(new_frenet, roadway, state_original.v)
-
+        set_t!(veh, state_original, roadway, Δv)
         extract!(ϕ, scene, roadway, vehicle_indeces)
         dat.lnP_tilde_denom_arr_t[k] += evaluate_dot(ϕ)
         Δv += Δval
@@ -141,14 +162,11 @@ function _update_lnP_tilde_denom_arr_v!(
     # reset original state
     veh = scene[vehicle_index]
     state_original = veh.state
-    f = state_original.posF
 
     Δv = Δlo
     Δval = (Δhi - Δlo) / (nsamples-1)
     for k in 1 : nsamples
-
-        veh.state = VehicleState(f, roadway, state_original.v+Δv)
-
+        set_v!(veh, state_original, roadway, Δv)
         extract!(ϕ, scene, roadway, vehicle_indeces)
         dat.lnP_tilde_denom_arr_v[k] += evaluate_dot(ϕ)
         Δv += Δval
@@ -184,10 +202,7 @@ function _update_lnP_tilde_denom_arr_ϕ!(
     Δv = Δlo
     Δval = (Δhi - Δlo) / (nsamples-1)
     for k in 1 : nsamples
-
-        new_frenet = Frenet(f.roadind, f.s, f.t, f.ϕ+Δv)
-        veh.state = VehicleState(new_frenet, roadway, state_original.v)
-
+        set_ϕ!(veh, state_original, roadway, Δv)
         extract!(ϕ, scene, roadway, vehicle_indeces)
         dat.lnP_tilde_denom_arr_ϕ[k] += evaluate_dot(ϕ)
         Δv += Δval
@@ -279,6 +294,267 @@ function calc_pseudolikelihood(dset::SceneStructureDataset;
         end
     end
     retval /= M
+
+    retval
+end
+
+function calc_pseudolikelihood_gradient_component_s(
+    ϕ::SharedFactor,
+    scene::Scene,
+    structure::SceneStructure,
+    roadway::Roadway,
+    vehicle_index::Int,
+    n_samples_monte_carlo_integration::Int,
+    rng::AbstractRNG,
+    )
+  
+    Δlo, Δhi = get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
+    volume = Δhi - Δlo
+
+    # get original state
+    veh = scene[vehicle_index]
+    state_original = veh.state
+
+    # compute expectation term
+    #   evaluated using Importance Sampling
+    E_numerator = 0.0
+    E_denominator = 0.0
+    for r in 1 : n_samples_monte_carlo_integration
+
+        set_s!(veh, state_original, roadway, volume*rand(rng) + Δlo)
+        extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+        f = evaluate(ϕ.template, target_instance)
+
+        p_true = evaluate_dot(ϕ)
+        p_importance = 1.0/volume
+        W = p_true / p_importance
+
+        @assert(!isnan(p_true))
+        @assert(!isnan(p_importance))
+        @assert(!isnan(W))
+
+        E_numerator += f*W
+        E_denominator += W
+    end
+
+    # reset original state
+    scene[vehicle_index].state = state_original
+
+    E = E_numerator / E_denominator
+
+    @assert(!isnan(E))
+    @assert(!isinf(E))
+
+    -E
+end
+function calc_pseudolikelihood_gradient_component_t(
+    ϕ::SharedFactor,
+    scene::Scene,
+    structure::SceneStructure,
+    roadway::Roadway,
+    vehicle_index::Int,
+    n_samples_monte_carlo_integration::Int,
+    rng::AbstractRNG,
+    )
+  
+    Δlo, Δhi = get_relative_variable_bounds_t(scene, structure, roadway, vehicle_index)
+    volume = Δhi - Δlo
+
+    # get original state
+    veh = scene[vehicle_index]
+    state_original = veh.state
+
+    # compute expectation term
+    #   evaluated using Importance Sampling
+    E_numerator = 0.0
+    E_denominator = 0.0
+    for r in 1 : n_samples_monte_carlo_integration
+
+        set_t!(veh, state_original, roadway, volume*rand(rng) + Δlo)
+        extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+        f = evaluate(ϕ.template, target_instance)
+
+        p_true = evaluate_dot(ϕ)
+        p_importance = 1.0/volume
+        W = p_true / p_importance
+
+        @assert(!isnan(p_true))
+        @assert(!isnan(p_importance))
+        @assert(!isnan(W))
+
+        E_numerator += f*W
+        E_denominator += W
+    end
+
+    # reset original state
+    scene[vehicle_index].state = state_original
+
+    E = E_numerator / E_denominator
+
+    @assert(!isnan(E))
+    @assert(!isinf(E))
+
+    -E
+end
+function calc_pseudolikelihood_gradient_component_v(
+    ϕ::SharedFactor,
+    scene::Scene,
+    structure::SceneStructure,
+    roadway::Roadway,
+    vehicle_index::Int,
+    n_samples_monte_carlo_integration::Int,
+    rng::AbstractRNG,
+    )
+  
+    Δlo, Δhi = get_relative_variable_bounds_v(scene, structure, roadway, vehicle_index)
+    volume = Δhi - Δlo
+
+    # get original state
+    veh = scene[vehicle_index]
+    state_original = veh.state
+
+    # compute expectation term
+    #   evaluated using Importance Sampling
+    E_numerator = 0.0
+    E_denominator = 0.0
+    for r in 1 : n_samples_monte_carlo_integration
+
+        set_v!(veh, state_original, roadway, volume*rand(rng) + Δlo)
+        extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+        f = evaluate(ϕ.template, target_instance)
+
+        p_true = evaluate_dot(ϕ)
+        p_importance = 1.0/volume
+        W = p_true / p_importance
+
+        @assert(!isnan(p_true))
+        @assert(!isnan(p_importance))
+        @assert(!isnan(W))
+
+        E_numerator += f*W
+        E_denominator += W
+    end
+
+    # reset original state
+    scene[vehicle_index].state = state_original
+
+    E = E_numerator / E_denominator
+
+    @assert(!isnan(E))
+    @assert(!isinf(E))
+
+    -E
+end
+function calc_pseudolikelihood_gradient_component_ϕ(
+    ϕ::SharedFactor,
+    scene::Scene,
+    structure::SceneStructure,
+    roadway::Roadway,
+    vehicle_index::Int,
+    n_samples_monte_carlo_integration::Int,
+    rng::AbstractRNG,
+    )
+  
+    Δlo, Δhi = get_relative_variable_bounds_ϕ(scene, structure, roadway, vehicle_index)
+    volume = Δhi - Δlo
+
+    # get original state
+    veh = scene[vehicle_index]
+    state_original = veh.state
+    f = state_original.posF
+
+    # compute expectation term
+    #   evaluated using Importance Sampling
+    E_numerator = 0.0
+    E_denominator = 0.0
+    for r in 1 : n_samples_monte_carlo_integration
+
+        set_ϕ!(veh, state_original, roadway, volume*rand(rng) + Δlo)
+        extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+        f = evaluate(ϕ.template, target_instance)
+
+        p_true = evaluate_dot(ϕ)
+        p_importance = 1.0/volume
+        W = p_true / p_importance
+
+        @assert(!isnan(p_true))
+        @assert(!isnan(p_importance))
+        @assert(!isnan(W))
+
+        E_numerator += f*W
+        E_denominator += W
+    end
+
+    # reset original state
+    scene[vehicle_index].state = state_original
+
+    E = E_numerator / E_denominator
+
+    @assert(!isnan(E))
+    @assert(!isinf(E))
+
+    -E
+end
+
+function calc_pseudolikelihood_gradient(
+    form::Int,
+    feature_index::Int,
+    dset::SceneStructureDataset,
+    batch_size::Int,
+    n_samples_monte_carlo_integration::Int,
+    regularization::Float64,
+    rng::AbstractRNG=Base.GLOBAL_RNG,
+    )
+
+    retval = 0.0
+    ϕ = dset.factors[factor_index]
+    target_instance = ϕ.instances[feature_index]
+
+    for m in 1 : batch_size
+
+        scene, structure, roadway = get_scene_structure_data_roadway(dset, m)
+
+        for fa in structure.factor_assignments
+            if fa.form == form # is the correct factor
+
+                vehicle_index = fa.vehicle_indeces[index_in_vehicle_indeces] # TODO
+
+                # only calc if the vehicle is active
+                if vehicle_index in structure.active_vehicles
+
+                    pull_vehicle_data!(ϕ, scene, vehicle_indeces) # TODO
+                    extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+
+                    # first component
+                    eval = evaluate(ϕ.template, target_instance)
+                    @assert(!isnan(retval))
+                    @assert(!isinf(retval))
+
+                    if graph_feature_uses_s(ϕ.form)
+                        retval += eval
+                        retval += calc_pseudolikelihood_gradient_component_s(ϕ, scene, structure, roadway, vehicle_index, n_samples_monte_carlo_integration, rng)
+                    end
+                    if graph_feature_uses_t()
+                        retval += eval
+                        retval += calc_pseudolikelihood_gradient_component_t(ϕ, scene, structure, roadway, vehicle_index, n_samples_monte_carlo_integration, rng)
+                    end
+                    if graph_feature_uses_v()
+                        retval += eval
+                        retval += calc_pseudolikelihood_gradient_component_v(ϕ, scene, structure, roadway, vehicle_index, n_samples_monte_carlo_integration, rng)
+                    end
+                    if graph_feature_uses_ϕ()
+                        retval += eval
+                        retval += calc_pseudolikelihood_gradient_component_ϕ(ϕ, scene, structure, roadway, vehicle_index, n_samples_monte_carlo_integration, rng)
+                    end
+                end
+            end
+        end
+    end
+
+    retval /= batch_size
+
+    # add regularization
+    retval -= 2*regularization*ϕ.weights[feature_index]
 
     retval
 end

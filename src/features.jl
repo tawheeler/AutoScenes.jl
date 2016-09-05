@@ -106,6 +106,41 @@ function evaluate(template::GraphFeatureTemplate, instance::GraphFeatureInstance
     retval::Float64
 end
 
+function uses_s(instance::GraphFeatureInstance)
+    if instance.form == FeatureForms.FOLLOW
+        return instance.exponents[1] > 0
+    elseif instance.form == FeatureForms.NEIGHBOR
+        return true
+    else
+    false
+end
+function uses_t(instance::GraphFeatureInstance)
+    if instance.form == FeatureForms.ROAD
+        return instance.exponents[1] > 0
+    elseif instance.form == FeatureForms.NEIGHBOR
+        return true
+    else
+    false
+end
+function uses_v(instance::GraphFeatureInstance)
+    if instance.form == FeatureForms.ROAD
+        return instance.exponents[2] > 0
+    elseif instance.form == FeatureForms.ROAD
+        return instance.exponents[2] > 0
+    elseif instance.form == FeatureForms.NEIGHBOR
+        return true
+    else
+    false
+end
+function uses_ϕ(instance::GraphFeatureInstance)
+    if instance.form == FeatureForms.ROAD
+        return instance.exponents[3] > 0
+    elseif instance.form == FeatureForms.NEIGHBOR
+        return true
+    else
+    false
+end
+
 const FEATURE_TEMPLATE_ROAD = GraphFeatureTemplate(FeatureForms.ROAD,
         [Normal(-0.332,  1.629), # t
          Normal(29.883, 13.480), # v
@@ -117,8 +152,4 @@ const FEATURE_TEMPLATE_FOLLOW = GraphFeatureTemplate(FeatureForms.FOLLOW,
          Normal( 0.184,  4.203*10), # Δv
         ]
     )
-const FEATURE_TEMPLATE_NEIGHBOR = GraphFeatureTemplate(FeatureForms.NEIGHBOR,
-        [Normal(49.443, 30.552), # Δs
-         Normal( 0.184,  4.203*10), # Δv
-        ]
-    )
+const FEATURE_TEMPLATE_NEIGHBOR = GraphFeatureTemplate(FeatureForms.NEIGHBOR, Normal[])
