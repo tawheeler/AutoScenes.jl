@@ -392,7 +392,7 @@ function calc_pseudolikelihood_gradient_component_s(
     rec::SceneRecord,
     )
 
-    Δlo, Δhi = get_relative_variable_bounds_s(scene, vehicle_index)
+    Δlo, Δhi = get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
     volume = Δhi - Δlo
 
     # get original state
@@ -440,7 +440,8 @@ function calc_pseudolikelihood_gradient_component_t(
     rec::SceneRecord,
     )
 
-    Δlo, Δhi = get_relative_variable_bounds_t(scene, vehicle_index)
+    update!(rec, scene)
+    Δlo, Δhi = get_relative_variable_bounds_t(rec, roadway, vehicle_index)
     volume = Δhi - Δlo
 
     # get original state

@@ -46,7 +46,7 @@ type StochasticGradientAscentParams
 
     batch_size::Int
     batch_size_multiplier::Float64
-    max_n_batches::Int
+    niter::Int
 
     learning_rate::Float64
     learning_rate_multiplier::Float64
@@ -62,7 +62,7 @@ type StochasticGradientAscentParams
     factor_weight_max::Float64
     gradient_min::Float64
     gradient_max::Float64
-    
+
     save_every::Int            # [batches], set to -1 to never save
     save_dir::AbstractString   # directory in which to store checkpointed models
     same_name::AbstractString  # name for saved models -> ex 'model' -> model_001.jld
@@ -72,7 +72,7 @@ type StochasticGradientAscentParams
     function StochasticGradientAscentParams(;
         batch_size::Int = 10,
         batch_size_multiplier::Float64 = 1.1,
-        max_n_batches::Int = typemax(Int),
+        niter::Int = 5,
         learning_rate::Float64 = 1.0,
         learning_rate_multiplier::Float64 = 0.97,
         momentum_param::Float64 = 0.5, # ∈ [0,1), v ← γv + α∇ₜ(batch), γ typically starts at 0.5 and then is set to 0.9 later
@@ -94,7 +94,7 @@ type StochasticGradientAscentParams
         retval = new()
         retval.batch_size = batch_size
         retval.batch_size_multiplier = batch_size_multiplier
-        retval.max_n_batches = max_n_batches
+        retval.niter = niter
         retval.learning_rate = learning_rate
         retval.learning_rate_multiplier = learning_rate_multiplier
         retval.momentum_param = momentum_param
@@ -118,7 +118,7 @@ function Base.show(io::IO, params::StochasticGradientAscentParams)
     println(io, "StochasticGradientAscentParams")
     println(io, "\tbatch_size: ", params.batch_size)
     println(io, "\tbatch_size_multiplier: ", params.batch_size_multiplier)
-    println(io, "\tmax_n_batches: ", params.max_n_batches)
+    println(io, "\niter: ", params.niter)
     println(io, "\tlearning_rate: ", params.learning_rate)
     println(io, "\tlearning_rate_multiplier: ", params.learning_rate_multiplier)
     println(io, "\tmomentum_param: ", params.momentum_param)
@@ -182,7 +182,7 @@ function step!(
             @assert(!isnan(ϕ.weights[i]))
         end
     end
-    
+
     dset
 end
 
@@ -196,8 +196,9 @@ function stochastic_gradient_ascent!(dset::SceneStructureDataset, params::Stocha
     batch_size = params.batch_size
 
     # run gradient ascent
-    batch_count = 0
-    while batch_count < params.max_n_batches
+    iter = 0
+    while iter < params.niter
+        iter += 1
 
         # gradient step
         step!(dset, params, grad_velocities, α, batch_size, scene, rec)
@@ -207,7 +208,6 @@ function stochastic_gradient_ascent!(dset::SceneStructureDataset, params::Stocha
 
         # batch size mult
         batch_size = round(Int, batch_size * params.batch_size_multiplier)
-        batch_count += 1
     end
 
     dset

@@ -139,7 +139,7 @@ function create_shared_factors()
 
     # Road
     road_instances = GraphFeatureInstance[]
-    max_pow = 4
+    max_pow = 2
     for i in 0:max_pow
         for j in 0:max_pow-i
             for k in 0:max_pow-i-j
@@ -153,7 +153,7 @@ function create_shared_factors()
 
     # Follow
     follow_instances = GraphFeatureInstance[]
-    max_pow = 3
+    max_pow = 2
     for i in 0 : max_pow
         for j in 0 : max_pow-i
             for k in 0 : max_pow-i-j

@@ -93,6 +93,14 @@ plog = calc_pseudolikelihood(dset, dat = PseudolikelihoodPrealloc(100000))
 grad = calc_pseudolikelihood_gradient(FeatureForms.ROAD, 1, dset, 1, 100000, 0.0)
 @test isapprox(grad, 0.35208, atol=0.005)
 
+params = StochasticGradientAscentParams(batch_size=1, niter=100,
+                                        n_samples_monte_carlo_integration=10000,
+                                        n_samples_monte_carlo_pseudolikelihood=10000)
+stochastic_gradient_ascent!(dset, params)
+
+plog2 = calc_pseudolikelihood(dset, dat = PseudolikelihoodPrealloc(100000))
+@test plog2 > plog  # it increases!
+
 ###############
 
 lines[line_index_orig] = line_orig
