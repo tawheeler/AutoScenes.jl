@@ -72,6 +72,24 @@ function gen_scene_structure(
     SceneStructure(factor_assignments, active_vehicles, lead_follow)
 end
 
-# # bounds (dictated by the scene and roadway)
-# s1 + len1/2 < s2 - len2/2
-# lane_width < t1 < lane_width
+function evaluate_dot!(
+    structure::SceneStructure,
+    factors::Vector{SharedFactor},
+    scene::Scene,
+    roadway::Roadway,
+    rec::SceneRecord,
+    )
+
+    # NOTE: this will call extract!
+
+    retval = 0.0
+    for i in 1 : length(structure.factor_assignments)
+
+        fa = structure.factor_assignments[i]
+        ϕ = factors[fa.form]
+
+        extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+        retval += evaluate_dot(ϕ)
+    end
+    retval
+end

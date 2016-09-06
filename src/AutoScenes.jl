@@ -16,7 +16,6 @@ export
     FEATURE_TEMPLATE_FOLLOW,
     FEATURE_TEMPLATE_NEIGHBOR,
 
-    extract!,
     evaluate,
 
     #####################################
@@ -34,6 +33,7 @@ export
     SceneStructure,
 
     gen_scene_structure,
+    evaluate_dot!,
 
     #####################################
     # subscene_extraction
@@ -70,6 +70,7 @@ export
 
 include(Pkg.dir("AutoScenes", "src", "features.jl"))
 include(Pkg.dir("AutoScenes", "src", "factors.jl"))
+include(Pkg.dir("AutoScenes", "src", "features", "basic.jl"))
 include(Pkg.dir("AutoScenes", "src", "scene_structures.jl"))
 include(Pkg.dir("AutoScenes", "src", "subscene_extraction.jl"))
 include(Pkg.dir("AutoScenes", "src", "structure_dataset.jl"))

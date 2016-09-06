@@ -12,6 +12,13 @@ immutable PseudolikelihoodPrealloc
             Array(Float64, n_samples_monte_carlo_integration))
     end
 end
+function Base.empty!(dat::PseudolikelihoodPrealloc)
+    fill!(dat.lnP_tilde_denom_arr_s, 0.0)
+    fill!(dat.lnP_tilde_denom_arr_t, 0.0)
+    fill!(dat.lnP_tilde_denom_arr_v, 0.0)
+    fill!(dat.lnP_tilde_denom_arr_ϕ, 0.0)
+    dat
+end
 
 function posF_matches_posG(state::VehicleState, roadway::Roadway)
     posG = state.posG
@@ -39,13 +46,17 @@ function get_relative_variable_bounds_t(rec::SceneRecord, roadway::Roadway, vehi
 end
 function get_relative_variable_bounds_v(scene::Scene, vehicle_index::Int)
     v = scene[vehicle_index].state.v
-    (-1.0-v, 32.0-v) # [m/s]
+    (BOUNDS_V[1]-v, BOUNDS_V[2]-v) # [m/s]
 end
 function get_relative_variable_bounds_ϕ(scene::Scene, vehicle_index::Int)
     ϕ = scene[vehicle_index].state.posF.ϕ
-    (-0.82-ϕ, 0.82-ϕ) # [rad]
+    (BOUNDS_ϕ[1]-ϕ, BOUNDS_ϕ[2]-ϕ) # [rad]
 end
 
+get_s(veh::Vehicle) = veh.state.posF.s
+get_t(veh::Vehicle) = veh.state.posF.t
+get_v(veh::Vehicle) = veh.state.v
+get_ϕ(veh::Vehicle) = veh.state.posF.ϕ
 function set_s!(veh::Vehicle, state_original::VehicleState, roadway::Roadway, value_delta::Float64)
     veh.state = move_along(state_original, roadway, value_delta)
     veh
@@ -93,7 +104,7 @@ function _update_lnP_tilde_denom_arr_s!(
     state_original = veh.state
 
     Δv = Δlo
-    Δval = (Δhi - Δlo) / (nsamples-1)
+    Δval = (Δhi - Δlo) / (nsamples+1)
     for k in 1 : nsamples
         set_s!(veh, state_original, roadway, Δv)
         extract!(ϕ, scene, roadway, vehicle_indeces)
@@ -128,7 +139,7 @@ function _update_lnP_tilde_denom_arr_t!(
     state_original = veh.state
 
     Δv = Δlo
-    Δval = (Δhi - Δlo) / (nsamples-1)
+    Δval = (Δhi - Δlo) / (nsamples+1)
     for k in 1 : nsamples
         set_t!(veh, state_original, roadway, Δv)
         extract!(ϕ, scene, roadway, vehicle_indeces)
@@ -163,7 +174,7 @@ function _update_lnP_tilde_denom_arr_v!(
     state_original = veh.state
 
     Δv = Δlo
-    Δval = (Δhi - Δlo) / (nsamples-1)
+    Δval = (Δhi - Δlo) / (nsamples+1)
     for k in 1 : nsamples
         set_v!(veh, state_original, roadway, Δv)
         extract!(ϕ, scene, roadway, vehicle_indeces)
@@ -199,7 +210,7 @@ function _update_lnP_tilde_denom_arr_ϕ!(
     f = state_original.posF
 
     Δv = Δlo
-    Δval = (Δhi - Δlo) / (nsamples-1)
+    Δval = (Δhi - Δlo) / (nsamples+1)
     for k in 1 : nsamples
         set_ϕ!(veh, state_original, roadway, Δv)
         extract!(ϕ, scene, roadway, vehicle_indeces)
@@ -213,21 +224,25 @@ function _update_lnP_tilde_denom_arr_ϕ!(
     dat
 end
 
-function _get_logP_tilde_denom(lnP_tilde_denom_arr::Vector{Float64}, volume::Float64, n_samples_monte_carlo_integration::Int)
+function _get_logP_tilde_denom_v(
+    dat::PseudolikelihoodPrealloc,
+    scene::Scene,
+    vehicle_index::Int,
+    Δlo::Float64,
+    Δhi::Float64,
+    nsamples::Int,
+    )
+
     P_tilde_denom = 0.0
-    for v in lnP_tilde_denom_arr
-        P_tilde_denom += exp(v)
+    v = get_v(scene[vehicle_index]) + Δlo
+    volume = Δhi - Δlo
+    Δv = volume / (nsamples+1)
+    for k in 1 : nsamples
+        P_tilde_denom += v*exp(dat.lnP_tilde_denom_arr_v[k])
+        v += Δv
     end
 
-    # DEBUG
-    blah = P_tilde_denom * volume/n_samples_monte_carlo_integration
-    if isinf(blah) || isnan(blah) || blah ≤ 0.0
-        println("lnP_tilde_denom_arr:               ", lnP_tilde_denom_arr)
-        println("P_tilde_denom:                     ", P_tilde_denom)
-        println("volume:                            ", volume)
-        println("n_samples_monte_carlo_integration: ", n_samples_monte_carlo_integration)
-    end
-    log(P_tilde_denom * volume/n_samples_monte_carlo_integration)
+    log(P_tilde_denom * volume/nsamples)
 end
 
 function calc_pseudolikelihood(dset::SceneStructureDataset;
@@ -238,50 +253,38 @@ function calc_pseudolikelihood(dset::SceneStructureDataset;
 
     retval = 0.0
     M = length(dset)
-    n_samples_monte_carlo_integration = length(dat.lnP_tilde_denom_arr_s)
+    nsamples = length(dat.lnP_tilde_denom_arr_s) # n_samples_monte_carlo_integration
 
     for m in 1 : M
 
         scene, structure, roadway = get_scene_structure_and_roadway!(scene, dset, m)
         update!(rec, scene)
 
-        for veh in scene
-            @assert(posF_matches_posG(veh.state, roadway))
-        end
-
         for vehicle_index in structure.active_vehicles
 
             lnP_tilde = 0.0
-            fill!(dat.lnP_tilde_denom_arr_s, 0.0)
-            fill!(dat.lnP_tilde_denom_arr_t, 0.0)
-            fill!(dat.lnP_tilde_denom_arr_v, 0.0)
-            fill!(dat.lnP_tilde_denom_arr_ϕ, 0.0)
+            empty!(dat)
 
-            Δlo_s, Δhi_s = get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
-            Δlo_t, Δhi_t = get_relative_variable_bounds_t(rec, roadway, vehicle_index)
+
+            # Δlo_s, Δhi_s = get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
+            # Δlo_t, Δhi_t = get_relative_variable_bounds_t(rec, roadway, vehicle_index)
             Δlo_v, Δhi_v = get_relative_variable_bounds_v(scene, vehicle_index)
-            Δlo_ϕ, Δhi_ϕ = get_relative_variable_bounds_ϕ(scene, vehicle_index)
+            # Δlo_ϕ, Δhi_ϕ = get_relative_variable_bounds_ϕ(scene, vehicle_index)
 
-            if Δhi_s - Δlo_s < 0.0
-                println("m: ", m)
-                println("vehicle_index: ", vehicle_index)
-                println("s: ", Δlo_s, "  ", Δhi_s)
-            end
-            if Δhi_t - Δlo_t < 0.0
-                println("t: ", Δlo_t, "  ", Δhi_t)
-            end
-            if Δhi_v - Δlo_v < 0.0
-                println("v: ", Δlo_v, "  ", Δhi_v)
-            end
-            if Δhi_ϕ - Δlo_ϕ < 0.0
-                println("ϕ: ", Δlo_ϕ, "  ", Δhi_ϕ)
-            end
-
-            # println("vehicle_index: ", vehicle_index)
-            # println("s: ", Δlo_s, "  ", Δhi_s)
-            # println("t: ", Δlo_t, "  ", Δhi_t)
-            # println("v: ", Δlo_v, "  ", Δhi_v)
-            # println("ϕ: ", Δlo_ϕ, "  ", Δhi_ϕ)
+            # if Δhi_s - Δlo_s < 0.0
+            #     println("m: ", m)
+            #     println("vehicle_index: ", vehicle_index)
+            #     println("s: ", Δlo_s, "  ", Δhi_s)
+            # end
+            # if Δhi_t - Δlo_t < 0.0
+            #     println("t: ", Δlo_t, "  ", Δhi_t)
+            # end
+            # if Δhi_v - Δlo_v < 0.0
+            #     println("v: ", Δlo_v, "  ", Δhi_v)
+            # end
+            # if Δhi_ϕ - Δlo_ϕ < 0.0
+            #     println("ϕ: ", Δlo_ϕ, "  ", Δhi_ϕ)
+            # end
 
             for fa in structure.factor_assignments
 
@@ -295,13 +298,13 @@ function calc_pseudolikelihood(dset::SceneStructureDataset;
                     target_index = findfirst(fa.vehicle_indeces, vehicle_index)
                     @assert(target_index > 0)
 
-                    _update_lnP_tilde_denom_arr_s!(dat, ϕ, scene, roadway, vehicle_index, fa.vehicle_indeces, Δlo_s, Δhi_s, n_samples_monte_carlo_integration)
-                    _update_lnP_tilde_denom_arr_t!(dat, ϕ, scene, roadway, vehicle_index, fa.vehicle_indeces, Δlo_t, Δhi_t, n_samples_monte_carlo_integration)
-                    _update_lnP_tilde_denom_arr_v!(dat, ϕ, scene, roadway, vehicle_index, fa.vehicle_indeces, Δlo_v, Δhi_v, n_samples_monte_carlo_integration)
-                    _update_lnP_tilde_denom_arr_ϕ!(dat, ϕ, scene, roadway, vehicle_index, fa.vehicle_indeces, Δlo_ϕ, Δhi_ϕ, n_samples_monte_carlo_integration)
+                    # _update_lnP_tilde_denom_arr_s!(dat, ϕ, scene, roadway, vehicle_index, fa.vehicle_indeces, Δlo_s, Δhi_s, nsamples)
+                    # _update_lnP_tilde_denom_arr_t!(dat, ϕ, scene, roadway, vehicle_index, fa.vehicle_indeces, Δlo_t, Δhi_t, nsamples)
+                    _update_lnP_tilde_denom_arr_v!(dat, ϕ, scene, roadway, vehicle_index, fa.vehicle_indeces, Δlo_v, Δhi_v, nsamples)
+                    # _update_lnP_tilde_denom_arr_ϕ!(dat, ϕ, scene, roadway, vehicle_index, fa.vehicle_indeces, Δlo_ϕ, Δhi_ϕ, nsamples)
 
                 else # this factor does not affect the vehicle
-                    for k in 1 : n_samples_monte_carlo_integration
+                    for k in 1 : nsamples
                         dat.lnP_tilde_denom_arr_s[k] += fd
                         dat.lnP_tilde_denom_arr_t[k] += fd
                         dat.lnP_tilde_denom_arr_v[k] += fd
@@ -310,10 +313,10 @@ function calc_pseudolikelihood(dset::SceneStructureDataset;
                 end
             end
 
-            retval += lnP_tilde - _get_logP_tilde_denom(dat.lnP_tilde_denom_arr_s, Δhi_s - Δlo_s, n_samples_monte_carlo_integration)
-            retval += lnP_tilde - _get_logP_tilde_denom(dat.lnP_tilde_denom_arr_t, Δhi_t - Δlo_t, n_samples_monte_carlo_integration)
-            retval += lnP_tilde - _get_logP_tilde_denom(dat.lnP_tilde_denom_arr_v, Δhi_v - Δlo_v, n_samples_monte_carlo_integration)
-            retval += lnP_tilde - _get_logP_tilde_denom(dat.lnP_tilde_denom_arr_ϕ, Δhi_ϕ - Δlo_ϕ, n_samples_monte_carlo_integration)
+            # retval += lnP_tilde - _get_logP_tilde_denom(dat.lnP_tilde_denom_arr_s, Δhi_s - Δlo_s, nsamples)
+            # retval += lnP_tilde - _get_logP_tilde_denom(dat.lnP_tilde_denom_arr_t, Δhi_t - Δlo_t, nsamples)
+            retval += lnP_tilde - _get_logP_tilde_denom_v(dat, scene, vehicle_index, Δlo_v, Δhi_v, nsamples)
+            # retval += lnP_tilde - _get_logP_tilde_denom(dat.lnP_tilde_denom_arr_ϕ, Δhi_ϕ - Δlo_ϕ, nsamples)
         end
     end
     retval /= M
@@ -448,6 +451,7 @@ function calc_pseudolikelihood_gradient_component_t(
 end
 function calc_pseudolikelihood_gradient_component_v(
     ϕ::SharedFactor,
+    factors::Vector{SharedFactor},
     scene::Scene,
     structure::SceneStructure,
     roadway::Roadway,
@@ -456,6 +460,7 @@ function calc_pseudolikelihood_gradient_component_v(
     target_instance::GraphFeatureInstance,
     n_samples_monte_carlo_integration::Int,
     rng::AbstractRNG,
+    rec::SceneRecord,
     )
 
     Δlo, Δhi = get_relative_variable_bounds_v(scene, vehicle_index)
@@ -474,17 +479,12 @@ function calc_pseudolikelihood_gradient_component_v(
         set_v!(veh, state_original, roadway, volume*rand(rng) + Δlo)
         extract!(ϕ, scene, roadway, vehicle_indeces)
         f = evaluate(ϕ.template, target_instance)
-
-        p_true = evaluate_dot(ϕ)
-        p_importance = 1.0/volume
-        W = p_true / p_importance
+        p_true = exp(evaluate_dot!(structure, factors, scene, roadway, rec))
 
         @assert(!isnan(p_true))
-        @assert(!isnan(p_importance))
-        @assert(!isnan(W))
 
-        E_numerator += f*W
-        E_denominator += W
+        E_numerator += f*p_true
+        E_denominator += p_true
     end
 
     # reset original state
@@ -598,8 +598,8 @@ function calc_pseudolikelihood_gradient(
                         end
                         if uses_v(target_instance)
                             retval += eval
-                            retval += calc_pseudolikelihood_gradient_component_v(ϕ, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
-                                                                                 target_instance,n_samples_monte_carlo_integration, rng)
+                            retval += calc_pseudolikelihood_gradient_component_v(ϕ, dset.factors, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
+                                                                                 target_instance,n_samples_monte_carlo_integration, rng, rec)
                         end
                         if uses_ϕ(target_instance)
                             retval += eval

@@ -13,7 +13,7 @@ type SharedFactor
     end
 end
 
-function extract!(
+function AutomotiveDrivingModels.extract!(
     factor::SharedFactor,
     scene::Scene,
     roadway::Roadway,
@@ -32,45 +32,3 @@ function evaluate_dot(factor::SharedFactor)
     retval
 end
 evaluate_exp(factor::SharedFactor) = exp(evaluate_dot(factor))
-
-function create_shared_factors()
-
-    retval = Array(SharedFactor, 3)
-
-    # Road
-    road_instances = GraphFeatureInstance[]
-    max_pow = 4
-    for i in 0:max_pow
-        for j in 0:max_pow-i
-            for k in 0:max_pow-i-j
-                if !(i == j == k == 0)
-                    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [i*1.0, j*1.0, k*1.0]))
-                end
-            end
-        end
-    end
-    retval[FeatureForms.ROAD] = SharedFactor(FEATURE_TEMPLATE_ROAD, road_instances)
-
-    # Follow
-    follow_instances = GraphFeatureInstance[]
-    max_pow = 3
-    for i in 0 : max_pow
-        for j in 0 : max_pow-i
-            for k in 0 : max_pow-i-j
-                if !(i == j == k == 0)
-                    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [i*1.0,j*1.0,k*1.0]))
-                end
-            end
-        end
-    end
-    retval[FeatureForms.FOLLOW] = SharedFactor(FEATURE_TEMPLATE_FOLLOW, follow_instances)
-
-    # Neighbor
-    neighbor_instances = GraphFeatureInstance[]
-    for i in 1 : 5
-        push!(neighbor_instances, GraphFeatureInstance(FeatureForms.NEIGHBOR, i))
-    end
-    retval[FeatureForms.NEIGHBOR] = SharedFactor(FEATURE_TEMPLATE_NEIGHBOR, neighbor_instances)
-
-    retval
-end
