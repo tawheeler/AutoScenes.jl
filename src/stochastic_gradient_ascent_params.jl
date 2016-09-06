@@ -12,19 +12,19 @@ type PrintParams
         )
 
         retval = new()
-        retval.print_to_stdout = print_to_stdout
-        retval.print_to_stdout_every = print_to_stdout_every
-        retval.print_to_file = print_to_file
-        retval.print_to_file_every = print_to_file_every
+        retval.to_stdout = to_stdout
+        retval.to_stdout_every = to_stdout_every
+        retval.to_file = to_file
+        retval.to_file_every = to_file_every
         retval
     end
 end
 function pprint(params::PrintParams, tup::Tuple)
-    if params.print_to_stdout
+    if params.to_stdout
         print(tup...)
     end
-    if !isempty(params.print_to_file)
-        open(params.print_to_file, "a") do fout
+    if !isempty(params.to_file)
+        open(params.to_file, "a") do fout
             print(fout, tup...)
         end
     end
@@ -47,7 +47,6 @@ type StochasticGradientAscentParams
     batch_size::Int
     batch_size_multiplier::Float64
     max_n_batches::Int
-    n_epochs::Int
 
     learning_rate::Float64
     learning_rate_multiplier::Float64
@@ -71,9 +70,8 @@ type StochasticGradientAscentParams
     print_params::PrintParams
 
     function StochasticGradientAscentParams(;
-        batch_size::Int = 100,
-        batch_size_decay::Float64 = 1.1,
-        n_epochs::Int = 5,
+        batch_size::Int = 10,
+        batch_size_multiplier::Float64 = 1.1,
         max_n_batches::Int = typemax(Int),
         learning_rate::Float64 = 1.0,
         learning_rate_multiplier::Float64 = 0.97,
@@ -84,7 +82,7 @@ type StochasticGradientAscentParams
         n_samples_monte_carlo_integration::Int = 10,
         n_samples_monte_carlo_pseudolikelihood::Int = 10,
         factor_weight_min::Float64 = -8.0,
-        factor_weight_max::Float64 =  0.0,
+        factor_weight_max::Float64 =  1.0,
         gradient_min::Float64 = -0.1,
         gradient_max::Float64 = 0.1,
         save_every::Int = -1,           # [batches], set to -1 to never save
@@ -93,10 +91,9 @@ type StochasticGradientAscentParams
         print_params::PrintParams = PrintParams(),
         )
 
-        retval
+        retval = new()
         retval.batch_size = batch_size
         retval.batch_size_multiplier = batch_size_multiplier
-        retval.n_epochs = n_epochs
         retval.max_n_batches = max_n_batches
         retval.learning_rate = learning_rate
         retval.learning_rate_multiplier = learning_rate_multiplier
@@ -117,13 +114,42 @@ type StochasticGradientAscentParams
         retval
     end
 end
+function Base.show(io::IO, params::StochasticGradientAscentParams)
+    println(io, "StochasticGradientAscentParams")
+    println(io, "\tbatch_size: ", params.batch_size)
+    println(io, "\tbatch_size_multiplier: ", params.batch_size_multiplier)
+    println(io, "\tmax_n_batches: ", params.max_n_batches)
+    println(io, "\tlearning_rate: ", params.learning_rate)
+    println(io, "\tlearning_rate_multiplier: ", params.learning_rate_multiplier)
+    println(io, "\tmomentum_param: ", params.momentum_param)
+    println(io, "\tregularization: ", params.regularization)
+    println(io, "\tn_samples_monte_carlo_integration: ", params.n_samples_monte_carlo_integration)
+    println(io, "\tn_samples_monte_carlo_pseudolikelihood: ", params.n_samples_monte_carlo_pseudolikelihood)
+    println(io, "\tfactor_weight_min: ", params.factor_weight_min)
+    println(io, "\tfactor_weight_max: ", params.factor_weight_max)
+    println(io, "\tgradient_min: ", params.gradient_min)
+    println(io, "\tgradient_max: ", params.gradient_max)
+    println(io, "\tsave_every: ", params.save_every)
+    println(io, "\tsave_dir: ", params.save_dir)
+    println(io, "\tsame_name: ", params.same_name)
+    println(io, "\tprint_params: ", params.print_params)
+end
 
+function alloc_grad_velocities(dset::SceneStructureDataset)
+    retval = Array(Vector{Float64}, length(dset.factors))
+    for (i, ϕ) in enumerate(dset.factors)
+        retval[i] = Array(Float64, length(ϕ.instances))
+    end
+    retval
+end
 function step!(
     dset::SceneStructureDataset,
     params::StochasticGradientAscentParams,
     grad_velocitities::Vector{Vector{Float64}},
     learning_rate::Float64,
     batch_size::Int,
+    scene::Scene,
+    rec::SceneRecord,
     )
 
     α = learning_rate
@@ -134,7 +160,9 @@ function step!(
         grad_vel_arr = grad_velocitities[factor_index]
 
         for feature_index in 1 : length(grad_vel_arr)
-            gradient = calc_pseudolikelihood_gradient(factor_index, feature_index, dset, batch_size, params.n_samples_monte_carlo_integration, params.regularization, params.mc_pseudolikelihood_rng)
+            gradient = calc_pseudolikelihood_gradient(factor_index, feature_index, dset, batch_size,
+                                                      params.n_samples_monte_carlo_integration, params.regularization,
+                                                      params.monte_carlo_pseudolikelihood_rng, scene, rec)
             @assert(!isnan(gradient))
             @assert(!isinf(gradient))
             grad_vel = grad_vel_arr[feature_index]
@@ -149,7 +177,7 @@ function step!(
         grad_vel_arr = grad_velocitities[factor_index]
 
         for i in 1 : length(ϕ.weights)
-            gradient = clamp(grads[i], params.gradient_min, params.gradient_max)
+            gradient = clamp(grad_vel_arr[i], params.gradient_min, params.gradient_max)
             ϕ.weights[i] = clamp(ϕ.weights[i] + gradient, params.factor_weight_min, params.factor_weight_max)
             @assert(!isnan(ϕ.weights[i]))
         end
@@ -159,26 +187,27 @@ function step!(
 end
 
 function stochastic_gradient_ascent!(dset::SceneStructureDataset, params::StochasticGradientAscentParams;
-    batch::SceneStructureDataset = allocate_batch(dset, params),
+    grad_velocities::Vector{Vector{Float64}} = alloc_grad_velocities(dset),
+    scene::Scene = Scene(),
+    rec::SceneRecord = SceneRecord(1, 0.1),
     )
 
     α = params.learning_rate
     batch_size = params.batch_size
 
     # run gradient ascent
-    while epoch_count < params.n_epochs && batch_count < params.max_n_batches
-
-        # sample a new batch
-        sample_batch!(batch, dset, params.batch_rng)
+    batch_count = 0
+    while batch_count < params.max_n_batches
 
         # gradient step
-        step!(batch, params, grad_velocitities, α, batch_size)
+        step!(dset, params, grad_velocities, α, batch_size, scene, rec)
 
         # learning rate mult
         α *= params.learning_rate_multiplier
 
         # batch size mult
         batch_size = round(Int, batch_size * params.batch_size_multiplier)
+        batch_count += 1
     end
 
     dset

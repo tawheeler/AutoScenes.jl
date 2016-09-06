@@ -95,14 +95,8 @@ function _update_lnP_tilde_denom_arr_s!(
     Δv = Δlo
     Δval = (Δhi - Δlo) / (nsamples-1)
     for k in 1 : nsamples
-
         set_s!(veh, state_original, roadway, Δv)
         extract!(ϕ, scene, roadway, vehicle_indeces)
-
-        if evaluate_dot(ϕ) > 1000.0
-            println(ϕ)
-        end
-
         dat.lnP_tilde_denom_arr_s[k] += evaluate_dot(ϕ)
         Δv += Δval
     end
@@ -333,12 +327,16 @@ function calc_pseudolikelihood_gradient_component_s(
     structure::SceneStructure,
     roadway::Roadway,
     vehicle_index::Int,
+    vehicle_indeces::Vector{Int},
+    target_instance::GraphFeatureInstance,
     n_samples_monte_carlo_integration::Int,
     rng::AbstractRNG,
     )
 
     Δlo, Δhi = get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
     volume = Δhi - Δlo
+
+    @assert(volume > 0.0)
 
     # get original state
     veh = scene[vehicle_index]
@@ -351,7 +349,7 @@ function calc_pseudolikelihood_gradient_component_s(
     for r in 1 : n_samples_monte_carlo_integration
 
         set_s!(veh, state_original, roadway, volume*rand(rng) + Δlo)
-        extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+        extract!(ϕ, scene, roadway, vehicle_indeces)
         f = evaluate(ϕ.template, target_instance)
 
         p_true = evaluate_dot(ϕ)
@@ -361,6 +359,7 @@ function calc_pseudolikelihood_gradient_component_s(
         @assert(!isnan(p_true))
         @assert(!isnan(p_importance))
         @assert(!isnan(W))
+        @assert(!isinf(W))
 
         E_numerator += f*W
         E_denominator += W
@@ -369,7 +368,11 @@ function calc_pseudolikelihood_gradient_component_s(
     # reset original state
     scene[vehicle_index].state = state_original
 
-    E = E_numerator / E_denominator
+    if !isapprox(E_denominator, 0.0)
+        E = E_numerator / E_denominator
+    else
+        E = 0.0
+    end
 
     @assert(!isnan(E))
     @assert(!isinf(E))
@@ -382,11 +385,14 @@ function calc_pseudolikelihood_gradient_component_t(
     structure::SceneStructure,
     roadway::Roadway,
     vehicle_index::Int,
+    vehicle_indeces::Vector{Int},
+    target_instance::GraphFeatureInstance,
     n_samples_monte_carlo_integration::Int,
     rng::AbstractRNG,
+    rec::SceneRecord,
     )
 
-    Δlo, Δhi = get_relative_variable_bounds_t(scene, structure, roadway, vehicle_index)
+    Δlo, Δhi = get_relative_variable_bounds_t(update!(rec, scene), roadway, vehicle_index)
     volume = Δhi - Δlo
 
     # get original state
@@ -400,7 +406,7 @@ function calc_pseudolikelihood_gradient_component_t(
     for r in 1 : n_samples_monte_carlo_integration
 
         set_t!(veh, state_original, roadway, volume*rand(rng) + Δlo)
-        extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+        extract!(ϕ, scene, roadway, vehicle_indeces)
         f = evaluate(ϕ.template, target_instance)
 
         p_true = evaluate_dot(ϕ)
@@ -410,6 +416,7 @@ function calc_pseudolikelihood_gradient_component_t(
         @assert(!isnan(p_true))
         @assert(!isnan(p_importance))
         @assert(!isnan(W))
+        @assert(!isinf(W))
 
         E_numerator += f*W
         E_denominator += W
@@ -419,6 +426,20 @@ function calc_pseudolikelihood_gradient_component_t(
     scene[vehicle_index].state = state_original
 
     E = E_numerator / E_denominator
+
+    if isnan(E)
+        print("vals: ")
+        for i in 1 : length(ϕ.instances)
+            v = evaluate(ϕ.template, ϕ.instances[i])
+            @printf("%.3f  ", v)
+        end
+        println("")
+        println("weights: ", ϕ.weights)
+        println("eval: ", evaluate_dot(ϕ))
+        println("n_samples_monte_carlo_integration: ", n_samples_monte_carlo_integration)
+        println("E_numerator: ", E_numerator)
+        println("E_denominator: ", E_denominator)
+    end
 
     @assert(!isnan(E))
     @assert(!isinf(E))
@@ -431,11 +452,13 @@ function calc_pseudolikelihood_gradient_component_v(
     structure::SceneStructure,
     roadway::Roadway,
     vehicle_index::Int,
+    vehicle_indeces::Vector{Int},
+    target_instance::GraphFeatureInstance,
     n_samples_monte_carlo_integration::Int,
     rng::AbstractRNG,
     )
 
-    Δlo, Δhi = get_relative_variable_bounds_v(scene, structure, roadway, vehicle_index)
+    Δlo, Δhi = get_relative_variable_bounds_v(scene, vehicle_index)
     volume = Δhi - Δlo
 
     # get original state
@@ -449,7 +472,7 @@ function calc_pseudolikelihood_gradient_component_v(
     for r in 1 : n_samples_monte_carlo_integration
 
         set_v!(veh, state_original, roadway, volume*rand(rng) + Δlo)
-        extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+        extract!(ϕ, scene, roadway, vehicle_indeces)
         f = evaluate(ϕ.template, target_instance)
 
         p_true = evaluate_dot(ϕ)
@@ -480,11 +503,13 @@ function calc_pseudolikelihood_gradient_component_ϕ(
     structure::SceneStructure,
     roadway::Roadway,
     vehicle_index::Int,
+    vehicle_indeces::Vector{Int},
+    target_instance::GraphFeatureInstance,
     n_samples_monte_carlo_integration::Int,
     rng::AbstractRNG,
     )
 
-    Δlo, Δhi = get_relative_variable_bounds_ϕ(scene, structure, roadway, vehicle_index)
+    Δlo, Δhi = get_relative_variable_bounds_ϕ(scene, vehicle_index)
     volume = Δhi - Δlo
 
     # get original state
@@ -499,7 +524,7 @@ function calc_pseudolikelihood_gradient_component_ϕ(
     for r in 1 : n_samples_monte_carlo_integration
 
         set_ϕ!(veh, state_original, roadway, volume*rand(rng) + Δlo)
-        extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+        extract!(ϕ, scene, roadway, vehicle_indeces)
         f = evaluate(ϕ.template, target_instance)
 
         p_true = evaluate_dot(ϕ)
@@ -533,6 +558,8 @@ function calc_pseudolikelihood_gradient(
     n_samples_monte_carlo_integration::Int,
     regularization::Float64,
     rng::AbstractRNG=Base.GLOBAL_RNG,
+    scene::Scene = Scene(),
+    rec::SceneRecord = SceneRecord(2, 0.1),
     )
 
     retval = 0.0
@@ -541,39 +568,44 @@ function calc_pseudolikelihood_gradient(
 
     for m in 1 : batch_size
 
-        scene, structure, roadway = get_scene_structure_and_roadway(dset, m)
+        structure_index = rand(1:length(dset)) # sample uniformly at random
+        scene, structure, roadway = get_scene_structure_and_roadway!(scene, dset, structure_index)
 
         for fa in structure.factor_assignments
             if fa.form == form # is the correct factor
 
-                vehicle_index = fa.vehicle_indeces[index_in_vehicle_indeces] # TODO
+                # first component
+                extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+                eval = evaluate(ϕ.template, target_instance)
 
-                # only calc if the vehicle is active
-                if vehicle_index in structure.active_vehicles
+                @assert(!isnan(retval))
+                @assert(!isinf(retval))
 
-                    pull_vehicle_data!(ϕ, scene, vehicle_indeces) # TODO
-                    extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+                for vehicle_index in fa.vehicle_indeces
 
-                    # first component
-                    eval = evaluate(ϕ.template, target_instance)
-                    @assert(!isnan(retval))
-                    @assert(!isinf(retval))
+                    # only calc if the vehicle is active
+                    if vehicle_index in structure.active_vehicles
 
-                    if graph_feature_uses_s(ϕ.form)
-                        retval += eval
-                        retval += calc_pseudolikelihood_gradient_component_s(ϕ, scene, structure, roadway, vehicle_index, n_samples_monte_carlo_integration, rng)
-                    end
-                    if graph_feature_uses_t()
-                        retval += eval
-                        retval += calc_pseudolikelihood_gradient_component_t(ϕ, scene, structure, roadway, vehicle_index, n_samples_monte_carlo_integration, rng)
-                    end
-                    if graph_feature_uses_v()
-                        retval += eval
-                        retval += calc_pseudolikelihood_gradient_component_v(ϕ, scene, structure, roadway, vehicle_index, n_samples_monte_carlo_integration, rng)
-                    end
-                    if graph_feature_uses_ϕ()
-                        retval += eval
-                        retval += calc_pseudolikelihood_gradient_component_ϕ(ϕ, scene, structure, roadway, vehicle_index, n_samples_monte_carlo_integration, rng)
+                        if uses_s(target_instance)
+                            retval += eval
+                            retval += calc_pseudolikelihood_gradient_component_s(ϕ, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
+                                                                                 target_instance,n_samples_monte_carlo_integration, rng)
+                        end
+                        if uses_t(target_instance)
+                            retval += eval
+                            retval += calc_pseudolikelihood_gradient_component_t(ϕ, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
+                                                                                 target_instance,n_samples_monte_carlo_integration, rng, rec)
+                        end
+                        if uses_v(target_instance)
+                            retval += eval
+                            retval += calc_pseudolikelihood_gradient_component_v(ϕ, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
+                                                                                 target_instance,n_samples_monte_carlo_integration, rng)
+                        end
+                        if uses_ϕ(target_instance)
+                            retval += eval
+                            retval += calc_pseudolikelihood_gradient_component_ϕ(ϕ, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
+                                                                                 target_instance,n_samples_monte_carlo_integration, rng)
+                        end
                     end
                 end
             end

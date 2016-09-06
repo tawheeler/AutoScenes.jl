@@ -56,7 +56,17 @@ export
     PseudolikelihoodPrealloc,
 
     calc_pseudolikelihood,
-    calc_pseudolikelihood_gradient
+    calc_pseudolikelihood_gradient,
+
+    #####################################
+    # SGA
+
+    StochasticGradientAscentParams,
+    PrintParams,
+
+    alloc_grad_velocities,
+    stochastic_gradient_ascent!,
+    step!
 
 include(Pkg.dir("AutoScenes", "src", "features.jl"))
 include(Pkg.dir("AutoScenes", "src", "factors.jl"))
@@ -64,6 +74,7 @@ include(Pkg.dir("AutoScenes", "src", "scene_structures.jl"))
 include(Pkg.dir("AutoScenes", "src", "subscene_extraction.jl"))
 include(Pkg.dir("AutoScenes", "src", "structure_dataset.jl"))
 include(Pkg.dir("AutoScenes", "src", "learning.jl"))
+include(Pkg.dir("AutoScenes", "src", "stochastic_gradient_ascent_params.jl"))
 
 include(Pkg.dir("AutoScenes", "src", "viz", "viz_scene_structures.jl"))
 

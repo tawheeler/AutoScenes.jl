@@ -9,10 +9,10 @@ end
 immutable GraphFeatureTemplate
     form::Int # feature form
     values::Vector{Float64} # [t,v,ϕ] for road, [Δs, Δv] for follow, etc.
-    normals::Vector{Normal} # mean and stdevs for standardization
+    normals::Vector{Normal{Float64}} # mean and stdevs for standardization
     mem::CPAMemory
 end
-function GraphFeatureTemplate(form::Int, normals::Vector{Normal})
+function GraphFeatureTemplate(form::Int, normals::Vector{Normal{Float64}})
     values = Array(Float64, length(normals))
     mem = CPAMemory()
     GraphFeatureTemplate(form, values, normals, mem)
@@ -152,4 +152,4 @@ const FEATURE_TEMPLATE_FOLLOW = GraphFeatureTemplate(FeatureForms.FOLLOW,
          Normal( 0.184,  4.203*10), # Δv
         ]
     )
-const FEATURE_TEMPLATE_NEIGHBOR = GraphFeatureTemplate(FeatureForms.NEIGHBOR, Array(Normal, 2))
+const FEATURE_TEMPLATE_NEIGHBOR = GraphFeatureTemplate(FeatureForms.NEIGHBOR, Array(Normal{Float64}, 2))
