@@ -1,6 +1,11 @@
 const BOUNDS_V = (0.0, 2.0) # m/s
 const BOUNDS_ϕ = (-0.82, 0.82) # rad
 
+const USE_S = false
+const USE_T = false
+const USE_V = true
+const USE_ϕ = false
+
 baremodule FeatureForms
     const ROAD     = 1
     const FOLLOW   = 2

@@ -33,21 +33,28 @@ roadway = gen_straight_roadway(1)
 scene = Scene([
     Vehicle(VehicleState(VecSE2(100.0,0.0,0.0), roadway, 1.0), VehicleDef(1, AgentClass.CAR, 4.0, 2.0)),
     Vehicle(VehicleState(VecSE2(108.0,0.0,0.0), roadway, 2.0), VehicleDef(2, AgentClass.CAR, 4.0, 2.0)),
+    Vehicle(VehicleState(VecSE2(116.0,0.0,0.0), roadway, 0.0), VehicleDef(3, AgentClass.CAR, 4.0, 2.0)),
+    Vehicle(VehicleState(VecSE2( 92.0,0.0,0.0), roadway, 0.0), VehicleDef(4, AgentClass.CAR, 4.0, 2.0)),
 ])
 structure = SceneStructure([
     FactorAssignment(FeatureForms.ROAD, [1]),
     FactorAssignment(FeatureForms.ROAD, [2]),
     FactorAssignment(FeatureForms.FOLLOW, [1,2]),
-    ], Set{Int}([1,2]), LeadFollowRelationships([2,0], [0,1]))
+    ], Set{Int}([1,2]), LeadFollowRelationships([2,3,0,1], [4,1,2,0]))
 
 vehdefs = Dict{Int, VehicleDef}()
 vehdefs[1] = scene[1].def
 vehdefs[2] = scene[2].def
+vehdefs[3] = scene[3].def
+vehdefs[4] = scene[4].def
 
 states = [TrajdataState(1, scene[1].state),
-          TrajdataState(2, scene[2].state)]
+          TrajdataState(2, scene[2].state),
+          TrajdataState(3, scene[3].state),
+          TrajdataState(4, scene[4].state),
+]
 
-frames = [TrajdataFrame(1,2,0.0)]
+frames = [TrajdataFrame(1,4,0.0)]
 
 dset = SceneStructureDataset(
     [Trajdata(roadway, vehdefs, states, frames)],
@@ -81,7 +88,7 @@ extract!(ϕ_follow, scene, roadway, vehicle_indeces)
 @test evaluate_dot!(structure, dset.factors, scene, roadway, SceneRecord(1,0.1)) == 4.5
 
 plog = calc_pseudolikelihood(dset, dat = PseudolikelihoodPrealloc(100000))
-@test isapprox(plog, -0.40484, atol=0.001)
+@test isapprox(plog, 0.1184, atol=0.001)
 
 grad = calc_pseudolikelihood_gradient(FeatureForms.ROAD, 1, dset, 1, 100000, 0.0)
 @test isapprox(grad, 0.35208, atol=0.005)
