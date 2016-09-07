@@ -38,7 +38,6 @@ function get_relative_variable_bounds_s(scene::Scene, structure::SceneStructure,
     relpos = get_frenet_relative_position(veh_fore, veh_rear, roadway)
     Δs_rear = relpos.Δs - veh_rear.def.length/2 -  veh_fore.def.length/2
     @assert !isnan(Δs_rear)
-    @assert Δs_rear > 0.0
 
     (-Δs_rear, Δs_fore) # NOTE: these are relative to the current s
 end

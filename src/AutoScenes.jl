@@ -66,7 +66,19 @@ export
 
     alloc_grad_velocities,
     stochastic_gradient_ascent!,
-    step!
+    step!,
+
+    #####################################
+    # sampling
+
+    SceneGenerator,
+
+    adheres_to_structure,
+    calc_acceptance_probability,
+    metropolis_hastings_step!,
+    metropolis_hastings!,
+    sample
+
 
 include(Pkg.dir("AutoScenes", "src", "features.jl"))
 include(Pkg.dir("AutoScenes", "src", "factors.jl"))
@@ -76,6 +88,7 @@ include(Pkg.dir("AutoScenes", "src", "subscene_extraction.jl"))
 include(Pkg.dir("AutoScenes", "src", "structure_dataset.jl"))
 include(Pkg.dir("AutoScenes", "src", "learning.jl"))
 include(Pkg.dir("AutoScenes", "src", "stochastic_gradient_ascent_params.jl"))
+include(Pkg.dir("AutoScenes", "src", "sampling.jl"))
 
 include(Pkg.dir("AutoScenes", "src", "viz", "viz_scene_structures.jl"))
 
