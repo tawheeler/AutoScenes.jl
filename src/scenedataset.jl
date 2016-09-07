@@ -20,6 +20,27 @@ function Base.push!(sdset::SceneDataset, scene::Scene, source::SceneSource)
 
     sdset
 end
+function Base.push!(sdset::SceneDataset, scene::Scene, source::SceneSource, structure::SceneStructure)
+    
+    acceptable_vehicles = Set{Int}()
+    for vehicle_index in structure.active_vehicles
+        push!(acceptable_vehicles, vehicle_index)
+        push!(acceptable_vehicles, structure.lead_follow.index_fore[vehicle_index])
+        push!(acceptable_vehicles, structure.lead_follow.index_rear[vehicle_index])
+    end
+
+    lo = length(sdset.states) + 1
+    for vehicle_index in acceptable_vehicles
+        veh = scene[vehicle_index]
+        push!(sdset.states, TrajdataState(veh.def.id, veh.state))
+    end
+    hi = length(sdset.states)
+
+    push!(sdset.frames, (lo, hi))
+    push!(sdset.sources, source)
+
+    sdset
+end
 
 function Base.write(io::IO, sdset::SceneDataset)
     println(io, "SCENEDATASET")
@@ -105,14 +126,39 @@ function Base.read(io::IO, ::Type{SceneDataset})
     SceneDataset(sources, states, frames)
 end
 
-function get_scene_and_roadway!(scene::Scene, sdset::SceneDataset, trajdatas::Vector{Trajdata}, scene_index::Int)
+function get_scene_and_roadway!(scene::Scene, sdset::SceneDataset, trajdatas::Vector{Trajdata}, scene_index::Int;
+    all_vehicles::Bool=true, # if false, only restores vehicles in the sdset
+    )
+
     origin = sdset.sources[scene_index]
     trajdata = trajdatas[origin.trajdata_index]
     get!(scene, trajdata, origin.frame)
 
     frame = sdset.frames[scene_index]
-    for (i, j) in enumerate(frame[1] : frame[2])
-        scene[i].state = sdset.states[j].state
+
+    if all_vehicles
+        for i in frame[1] : frame[2]
+            tdstate = sdset.states[i]
+            vehicle_index = get_index_of_first_vehicle_with_id(scene, tdstate.id)
+            scene[vehicle_index].state = tdstate.state
+        end
+    else
+        restored_vehicles = Set{Int}()
+        for i in frame[1] : frame[2]
+            tdstate = sdset.states[i]
+            vehicle_index = get_index_of_first_vehicle_with_id(scene, tdstate.id)
+            scene[vehicle_index].state = tdstate.state
+            push!(restored_vehicles, tdstate.id)
+        end
+
+        vehicle_index = 1
+        while vehicle_index ≤ length(scene)
+            if scene[vehicle_index].def.id ∉ restored_vehicles
+                deleteat!(scene, vehicle_index)
+            else
+                vehicle_index += 1
+            end
+        end
     end
 
     (scene, trajdata.roadway)
