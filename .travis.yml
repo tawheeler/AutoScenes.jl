@@ -9,5 +9,6 @@ notifications:
   email: false
 before_install:
   - sudo apt-get -qq update
+  - julia -e 'Pkg.clone("https://github.com/tawheeler/Vec.jl.git"); Pkg.clone("https://github.com/tawheeler/AutomotiveDrivingModels.jl.git"); Pkg.clone("https://github.com/tawheeler/AutoViz.jl.git"); Pkg.clone(pwd()); Pkg.add("Colors"); Pkg.add("Cairo"); Pkg.add("Reel"); Pkg.test("AutoScenes"; coverage=true)'
 after_success:
   - julia -e 'cd(Pkg.dir("AutoScenes")); Pkg.add("AutoScenes"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
