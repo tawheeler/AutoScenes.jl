@@ -52,6 +52,13 @@ export
     pull_scene_dataset,
 
     #####################################
+    # scenedataset
+
+    SceneDataset,
+
+    get_scene_and_roadway!,
+
+    #####################################
     # learning
     PseudolikelihoodPrealloc,
 
@@ -86,6 +93,7 @@ include(Pkg.dir("AutoScenes", "src", "features", "core.jl"))
 include(Pkg.dir("AutoScenes", "src", "scene_structures.jl"))
 include(Pkg.dir("AutoScenes", "src", "subscene_extraction.jl"))
 include(Pkg.dir("AutoScenes", "src", "structure_dataset.jl"))
+include(Pkg.dir("AutoScenes", "src", "scenedataset.jl"))
 include(Pkg.dir("AutoScenes", "src", "learning.jl"))
 include(Pkg.dir("AutoScenes", "src", "stochastic_gradient_ascent_params.jl"))
 include(Pkg.dir("AutoScenes", "src", "sampling.jl"))

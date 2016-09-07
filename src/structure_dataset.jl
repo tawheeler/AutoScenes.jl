@@ -9,6 +9,7 @@ type SceneStructureDataset
     structures::Vector{SceneStructure}
     factors::Vector{SharedFactor}
 end
+
 Base.length(dset::SceneStructureDataset) = length(dset.structures)
 function nvehicles(dset::SceneStructureDataset)
     count = 0

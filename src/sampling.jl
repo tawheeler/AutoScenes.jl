@@ -248,3 +248,12 @@ function Distributions.sample(sg::SceneGenerator, dset::SceneStructureDataset)
 
     (scene, source, structure, roadway)
 end
+
+function Distributions.sample(N::Int, sg::SceneGenerator, dset::SceneStructureDataset)
+    sdset = SceneDataset()
+    for i in 1 : N
+        scene, source, structure, roadway = sample(sg, dset)
+        push!(sdset, scene, source)
+    end
+    sdset
+end
