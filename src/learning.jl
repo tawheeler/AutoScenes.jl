@@ -533,6 +533,7 @@ function calc_pseudolikelihood_gradient_component_v(
     # @assert(!isinf(E))
 
     if isnan(E) || isinf(E)
+        warn("calc_pseudolikelihood_gradient_component_v is $E; $E_numerator, $E_denominator")
         E = 0.0
     end
 
@@ -631,6 +632,7 @@ function calc_pseudolikelihood_gradient(
     rng::AbstractRNG=Base.GLOBAL_RNG,
     scene::Scene = Scene(),
     rec::SceneRecord = SceneRecord(2, 0.1),
+    factors::Vector{SharedFactor} = sampler.dset.factors,
     )
 
     dset = sampler.dset

@@ -84,7 +84,7 @@ end
 function alloc_grad_velocities(dset::SceneStructureDataset)
     retval = Array(Vector{Float64}, length(dset.factors))
     for (i, ϕ) in enumerate(dset.factors)
-        retval[i] = Array(Float64, length(ϕ.instances))
+        retval[i] = zeros(Float64, length(ϕ.instances))
     end
     retval
 end
@@ -169,11 +169,7 @@ function step!(params::GradientStepParams)
 
         for feature_index in 1 : length(grad_vel_arr)
             gradient = calc_pseudolikelihood_gradient(factor_index, feature_index, params.batch_size, params.grad_params)
-            @assert(!isnan(gradient))
-            @assert(!isinf(gradient))
             grad_vel = grad_vel_arr[feature_index]
-            @assert(!isnan(grad_vel))
-            @assert(!isinf(grad_vel))
             grad_vel_arr[feature_index] = γ*grad_vel + α*gradient
         end
     end
@@ -182,11 +178,13 @@ function step!(params::GradientStepParams)
     for (factor_index, ϕ) in enumerate(dset.factors)
         grad_vel_arr = params.grad_velocitities[factor_index]
 
+        print(factor_index, ": ")
         for i in 1 : length(ϕ.weights)
+            @printf("%8.3f  ", grad_vel_arr[i])
             gradient = clamp(grad_vel_arr[i], params.gradient_min, params.gradient_max)
             ϕ.weights[i] = clamp(ϕ.weights[i] + gradient, params.factor_weight_min, params.factor_weight_max)
-            @assert(!isnan(ϕ.weights[i]))
         end
+        println("")
     end
 
     dset
