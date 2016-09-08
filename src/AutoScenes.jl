@@ -66,9 +66,19 @@ export
     calc_pseudolikelihood_gradient,
 
     #####################################
+    # Batch Sampler
+
+    BatchSampler,
+
+    restart!,
+    next_index!,
+
+    #####################################
     # SGA
 
     StochasticGradientAscentParams,
+    GradientStepParams,
+    GradientParams,
     PrintParams,
 
     alloc_grad_velocities,

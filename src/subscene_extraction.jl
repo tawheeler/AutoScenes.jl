@@ -74,10 +74,18 @@ function is_scene_well_behaved(
     scene::Scene,
     roadway::Roadway,
     scene_params::SubSceneExtractParams,
-    mem::CPAMemory=CPAMemory(),
+    mem::CPAMemory=CPAMemory();
+    check_is_in_bounds::Bool=true,
+    check_longitudinal_room::Bool=true,
     )
 
-    is_in_bounds(scene, scene_params) && is_there_longitudinal_room(scene, roadway)
+    if check_is_in_bounds && !is_in_bounds(scene, scene_params)
+        return false
+    elseif check_longitudinal_room && !is_there_longitudinal_room(scene, roadway)
+        return false
+    end
+
+    true
 end
 
 

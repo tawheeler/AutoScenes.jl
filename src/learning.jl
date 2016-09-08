@@ -571,6 +571,34 @@ function calc_pseudolikelihood_gradient_component_ϕ(
     -E
 end
 
+#####################
+
+type BatchSampler
+    dset::SceneStructureDataset
+    perm::Array{Int} # permutation over all samples in the dataset
+    perm_index::Int # location in the perm
+    epoch::Int # the current epoch (ie if this is 2 we have already been through dset once and are on our 2nd time through)
+end
+BatchSampler(dset::SceneStructureDataset) = BatchSampler(dset, randperm(length(dset)), 0, 1)
+
+epoch_size(sampler::BatchSampler) = length(sampler.dset)
+function restart!(sampler::BatchSampler)
+    sampler.perm_index = 0
+    sampler.epoch = 1
+    sampler.perm = randperm(length(sampler.perm))
+    sampler
+end
+function next_index!(sampler::BatchSampler)
+    sampler.perm_index += 1
+    if sampler.perm_index > length(sampler.perm)
+        sampler.perm_index = 1
+        sampler.epoch += 1
+    end
+    sampler.perm[sampler.perm_index]
+end
+
+#####################
+
 function calc_pseudolikelihood_gradient(
     form::Int,
     feature_index::Int,

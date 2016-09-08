@@ -146,25 +146,16 @@ function calc_acceptance_probability(
         return 0.0 # do not accept out-of-bounds scenes
     end
 
-    p_current = evaluate_dot!(structure, vehicle_index, factors, scene, roadway, rec)
+    log_p_current = evaluate_dot!(structure, vehicle_index, factors, scene, roadway, rec)
 
     veh = scene.vehicles[vehicle_index]
     state_current = veh.state
     veh.state = state_propose
-    p_propose = evaluate_dot!(structure, vehicle_index, factors, scene, roadway, rec)
+    log_p_propose = evaluate_dot!(structure, vehicle_index, factors, scene, roadway, rec)
     veh.state = state_current
 
-    @assert(p_propose ≥ 0.0)
-    if p_propose == 0.0
-        return 0.0
-    end
-
-    if p_current == 0.0
-        # accept if the current one is not acceptable
-        return 1.0
-    end
-
-    min(1.0, p_propose / p_current)
+    min(1.0, exp(log_p_propose - log_p_current))
+    # min(1.0, p_propose / p_current)
 end
 function metropolis_hastings_step!(
     scene::Scene,
@@ -242,7 +233,7 @@ function Distributions.sample(sg::SceneGenerator, dset::SceneStructureDataset)
     starting_scene_index = rand(1:length(dset))
     source = dset.sources[starting_scene_index]
     scene, structure, roadway = get_scene_structure_and_roadway!(Scene(), dset, starting_scene_index)
-    
+
     metropolis_hastings!(scene, structure, roadway, sg.factors,
                          sg.propsal_distribution, sg.burnin, sg.Δ_propose, sg.mem, sg.rec)
 

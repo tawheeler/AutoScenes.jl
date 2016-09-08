@@ -8,7 +8,7 @@ SceneDataset() = SceneDataset(SceneSource[], TrajdataState[], Tuple{Int,Int}[])
 Base.length(sdset::SceneDataset) = length(sdset.frames)
 
 function Base.push!(sdset::SceneDataset, scene::Scene, source::SceneSource)
-    
+
     lo = length(sdset.states) + 1
     for veh in scene
         push!(sdset.states, TrajdataState(veh.def.id, veh.state))
@@ -21,7 +21,7 @@ function Base.push!(sdset::SceneDataset, scene::Scene, source::SceneSource)
     sdset
 end
 function Base.push!(sdset::SceneDataset, scene::Scene, source::SceneSource, structure::SceneStructure)
-    
+
     acceptable_vehicles = Set{Int}()
     for vehicle_index in structure.active_vehicles
         push!(acceptable_vehicles, vehicle_index)
