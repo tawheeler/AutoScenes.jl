@@ -72,6 +72,8 @@ export
 
     restart!,
     next_index!,
+    epoch_size,
+    get_n_samples_used,
 
     #####################################
     # SGA

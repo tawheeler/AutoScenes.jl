@@ -76,7 +76,7 @@ type GradientParams
 end
 function calc_pseudolikelihood_gradient(form::Int, feature_index::Int, batch_size::Int, params::GradientParams)
 
-    calc_pseudolikelihood_gradient(factor_index, feature_index, params.batch_sampler, batch_size,
+    calc_pseudolikelihood_gradient(form, feature_index, params.batch_sampler, batch_size,
                                    params.n_samples_monte_carlo_integration, params.regularization,
                                    params.monte_carlo_pseudolikelihood_rng, params.scene, params.rec)
 end
@@ -183,7 +183,7 @@ function step!(params::GradientStepParams)
         grad_vel_arr = params.grad_velocitities[factor_index]
 
         for i in 1 : length(ϕ.weights)
-            gradient = clamp(grad_vel_arr[i], params.grad_params.gradient_min, params.gradient_max)
+            gradient = clamp(grad_vel_arr[i], params.gradient_min, params.gradient_max)
             ϕ.weights[i] = clamp(ϕ.weights[i] + gradient, params.factor_weight_min, params.factor_weight_max)
             @assert(!isnan(ϕ.weights[i]))
         end

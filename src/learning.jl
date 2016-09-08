@@ -31,13 +31,19 @@ function get_relative_variable_bounds_s(scene::Scene, structure::SceneStructure,
     veh_fore = scene[structure.lead_follow.index_fore[vehicle_index]]
     relpos = get_frenet_relative_position(veh_fore, veh_rear, roadway)
     Δs_fore = relpos.Δs - veh_rear.def.length/2 -  veh_fore.def.length/2
-    @assert !isnan(Δs_fore)
+    # @assert !isnan(Δs_fore)
+    if isnan(Δs_fore)
+        Δs_fore = 0.0
+    end
 
     veh_rear = scene[structure.lead_follow.index_rear[vehicle_index]]
     veh_fore = scene[vehicle_index]
     relpos = get_frenet_relative_position(veh_fore, veh_rear, roadway)
     Δs_rear = relpos.Δs - veh_rear.def.length/2 -  veh_fore.def.length/2
-    @assert !isnan(Δs_rear)
+    # @assert !isnan(Δs_rear)
+    if isnan(Δs_rear)
+        Δs_rear = 0.0
+    end
 
     (-Δs_rear, Δs_fore) # NOTE: these are relative to the current s
 end
@@ -373,6 +379,10 @@ function calc_pseudolikelihood(dset::SceneStructureDataset;
     end
     retval /= M
 
+    if isnan(retval) || isinf(retval)
+        retval = 0.0
+    end
+
     retval
 end
 
@@ -409,8 +419,6 @@ function calc_pseudolikelihood_gradient_component_s(
         f = evaluate(ϕ.template, target_instance)
         p_true = exp(evaluate_dot!(structure, factors, scene, roadway, rec))
 
-        @assert(!isnan(p_true))
-
         E_numerator += f*p_true
         E_denominator += p_true
     end
@@ -420,8 +428,12 @@ function calc_pseudolikelihood_gradient_component_s(
 
     E = E_numerator / E_denominator
 
-    @assert(!isnan(E))
-    @assert(!isinf(E))
+    if isnan(E) || isinf(E)
+        E = 0.0
+    end
+
+    # @assert(!isnan(E))
+    # @assert(!isinf(E))
 
     -E
 end
@@ -458,8 +470,6 @@ function calc_pseudolikelihood_gradient_component_t(
         f = evaluate(ϕ.template, target_instance)
         p_true = exp(evaluate_dot!(structure, factors, scene, roadway, rec))
 
-        @assert(!isnan(p_true))
-
         E_numerator += f*p_true
         E_denominator += p_true
     end
@@ -469,8 +479,12 @@ function calc_pseudolikelihood_gradient_component_t(
 
     E = E_numerator / E_denominator
 
-    @assert(!isnan(E))
-    @assert(!isinf(E))
+    # @assert(!isnan(E))
+    # @assert(!isinf(E))
+
+    if isnan(E) || isinf(E)
+        E = 0.0
+    end
 
     -E
 end
@@ -506,8 +520,6 @@ function calc_pseudolikelihood_gradient_component_v(
         f = evaluate(ϕ.template, target_instance)
         p_true = exp(evaluate_dot!(structure, factors, scene, roadway, rec))
 
-        @assert(!isnan(p_true))
-
         E_numerator += f*p_true
         E_denominator += p_true
     end
@@ -517,8 +529,12 @@ function calc_pseudolikelihood_gradient_component_v(
 
     E = E_numerator / E_denominator
 
-    @assert(!isnan(E))
-    @assert(!isinf(E))
+    # @assert(!isnan(E))
+    # @assert(!isinf(E))
+
+    if isnan(E) || isinf(E)
+        E = 0.0
+    end
 
     -E
 end
@@ -554,8 +570,6 @@ function calc_pseudolikelihood_gradient_component_ϕ(
         f = evaluate(ϕ.template, target_instance)
         p_true = exp(evaluate_dot!(structure, factors, scene, roadway, rec))
 
-        @assert(!isnan(p_true))
-
         E_numerator += f*p_true
         E_denominator += p_true
     end
@@ -565,8 +579,12 @@ function calc_pseudolikelihood_gradient_component_ϕ(
 
     E = E_numerator / E_denominator
 
-    @assert(!isnan(E))
-    @assert(!isinf(E))
+    # @assert(!isnan(E))
+    # @assert(!isinf(E))
+
+    if isnan(E) || isinf(E)
+        E = 0.0
+    end
 
     -E
 end
@@ -582,6 +600,10 @@ end
 BatchSampler(dset::SceneStructureDataset) = BatchSampler(dset, randperm(length(dset)), 0, 1)
 
 epoch_size(sampler::BatchSampler) = length(sampler.dset)
+function get_n_samples_used(sampler::BatchSampler)
+    n_epochs = epoch_size(sampler)
+    n_epochs*(sampler.epoch - 1) + sampler.perm_index
+end
 function restart!(sampler::BatchSampler)
     sampler.perm_index = 0
     sampler.epoch = 1
@@ -602,7 +624,7 @@ end
 function calc_pseudolikelihood_gradient(
     form::Int,
     feature_index::Int,
-    dset::SceneStructureDataset,
+    sampler::BatchSampler,
     batch_size::Int,
     n_samples_monte_carlo_integration::Int,
     regularization::Float64,
@@ -611,13 +633,14 @@ function calc_pseudolikelihood_gradient(
     rec::SceneRecord = SceneRecord(2, 0.1),
     )
 
+    dset = sampler.dset
     retval = 0.0
     ϕ = dset.factors[form]
     target_instance = ϕ.instances[feature_index]
 
     for m in 1 : batch_size
 
-        structure_index = rand(1:length(dset)) # sample uniformly at random
+        structure_index = next_index!(sampler) # sample uniformly at random
         scene, structure, roadway = get_scene_structure_and_roadway!(scene, dset, structure_index)
 
         for fa in structure.factor_assignments
@@ -626,9 +649,6 @@ function calc_pseudolikelihood_gradient(
                 # first component
                 extract!(ϕ, scene, roadway, fa.vehicle_indeces)
                 eval = evaluate(ϕ.template, target_instance)
-
-                @assert(!isnan(retval))
-                @assert(!isinf(retval))
 
                 for vehicle_index in fa.vehicle_indeces
 
