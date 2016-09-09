@@ -12,6 +12,14 @@ baremodule FeatureForms
     const NEIGHBOR = 3
 end
 
+function is_on_aux(veh::Vehicle)
+    tag = veh.state.posF.roadind.tag
+    if tag.lane == 1 && (tag.segment == 2 || tag.segment == 3 || tag.segment == 5)
+        return true
+    end
+    false
+end
+
 function AutomotiveDrivingModels.extract!(
     template::GraphFeatureTemplate,
     scene::Scene,
@@ -22,9 +30,12 @@ function AutomotiveDrivingModels.extract!(
     if template.form == FeatureForms.ROAD
 
         vehicle_index = vehicle_indeces[1]
-        _set_and_standardize!(template, scene[vehicle_index].state.posF.t, 1)
-        _set_and_standardize!(template, scene[vehicle_index].state.v,      2)
-        _set_and_standardize!(template, scene[vehicle_index].state.posF.ϕ, 3)
+        veh = scene[vehicle_index]
+        _set_and_standardize!(template, veh.state.posF.t, 1)
+        _set_and_standardize!(template, veh.state.v,      2)
+        _set_and_standardize!(template, veh.state.posF.ϕ, 3)
+        template.values[4] = is_on_aux(veh)
+
     elseif template.form == FeatureForms.FOLLOW
 
         veh_rear = scene[vehicle_indeces[1]]
@@ -125,6 +136,7 @@ const FEATURE_TEMPLATE_ROAD = GraphFeatureTemplate(FeatureForms.ROAD,
         [Normal( 0.0,  1.7), # t
          Normal(13.0, 30.0), # v
          Normal( 0.0,  0.1), # ϕ
+         Normal( 0.0,  1.0), # is on aux
         ]
     )
 const FEATURE_TEMPLATE_FOLLOW = GraphFeatureTemplate(FeatureForms.FOLLOW,
@@ -146,7 +158,9 @@ function create_shared_factors()
         for j in 0:max_pow-i
             for k in 0:max_pow-i-j
                 if !(i == j == k == 0)
-                    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [i*1.0, j*1.0, k*1.0]))
+                    for aux in 0:1
+                        push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [i*1.0, j*1.0, k*1.0, aux*1.0]))
+                    end
                 end
             end
         end

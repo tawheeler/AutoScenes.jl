@@ -40,12 +40,12 @@ function evaluate(template::GraphFeatureTemplate, instance::GraphFeatureInstance
     # NOTE: template must have already been extracted
     @assert(template.form == instance.form)
 
-    retval = 0.0
+    retval = 1.0
 
     for i in 1 : length(template.values)
         v = template.values[i]
         e = instance.exponents[i]
-        retval += v^e
+        retval *= v^e
     end
 
     retval::Float64

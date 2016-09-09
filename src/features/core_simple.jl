@@ -57,10 +57,11 @@ function evaluate(template::GraphFeatureTemplate, instance::GraphFeatureInstance
     retval = 0.0
 
     if template.form == FeatureForms.ROAD || template.form == FeatureForms.FOLLOW
+        retval = 1.0
         for i in 1 : length(template.values)
             v = template.values[i]
             e = instance.exponents[i]
-            retval += v^e
+            retval *= v^e
         end
     else # template.form == FeatureForms.NEIGHBOR
 
