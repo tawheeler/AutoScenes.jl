@@ -429,7 +429,7 @@ function calc_pseudolikelihood_gradient_component_s(
     E = E_numerator / E_denominator
 
     if isnan(E) || isinf(E)
-        E = 0.0
+        E = randn()
     end
 
     # @assert(!isnan(E))
@@ -483,7 +483,7 @@ function calc_pseudolikelihood_gradient_component_t(
     # @assert(!isinf(E))
 
     if isnan(E) || isinf(E)
-        E = 0.0
+        E = randn()
     end
 
     -E
@@ -533,8 +533,8 @@ function calc_pseudolikelihood_gradient_component_v(
     # @assert(!isinf(E))
 
     if isnan(E) || isinf(E)
-        warn("calc_pseudolikelihood_gradient_component_v is $E; $E_numerator, $E_denominator")
-        E = 0.0
+        # warn("calc_pseudolikelihood_gradient_component_v is $E; $E_numerator, $E_denominator")
+        E = randn()
     end
 
     -E
@@ -584,7 +584,7 @@ function calc_pseudolikelihood_gradient_component_ϕ(
     # @assert(!isinf(E))
 
     if isnan(E) || isinf(E)
-        E = 0.0
+        E = randn()
     end
 
     -E
