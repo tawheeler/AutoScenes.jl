@@ -101,7 +101,7 @@ export
 
 include(Pkg.dir("AutoScenes", "src", "features.jl"))
 include(Pkg.dir("AutoScenes", "src", "factors.jl"))
-include(Pkg.dir("AutoScenes", "src", "features", "core_with_aux.jl"))
+include(Pkg.dir("AutoScenes", "src", "features", "basic.jl"))
 include(Pkg.dir("AutoScenes", "src", "scene_structures.jl"))
 include(Pkg.dir("AutoScenes", "src", "subscene_extraction.jl"))
 include(Pkg.dir("AutoScenes", "src", "structure_dataset.jl"))

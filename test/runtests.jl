@@ -90,13 +90,14 @@ extract!(ϕ_follow, scene, roadway, vehicle_indeces)
 plog = calc_pseudolikelihood(dset, dat = PseudolikelihoodPrealloc(100000))
 @test isapprox(plog, 0.1184, atol=0.001)
 
-grad = calc_pseudolikelihood_gradient(FeatureForms.ROAD, 1, dset, 1, 100000, 0.0)
+sampler = BatchSampler(dset)
+grad = calc_pseudolikelihood_gradient(FeatureForms.ROAD, 1, sampler, 1, 100000, 0.0)
 @test isapprox(grad, 0.35208, atol=0.005)
 
-params = StochasticGradientAscentParams(batch_size=1, niter=100,
-                                        n_samples_monte_carlo_integration=10000,
-                                        n_samples_monte_carlo_pseudolikelihood=10000)
-stochastic_gradient_ascent!(dset, params)
+params = GradientStepParams(sampler, batch_size=1)
+params.grad_params.n_samples_monte_carlo_integration=10000
+params.grad_params.n_samples_monte_carlo_pseudolikelihood=10000
+step!(params)
 
 plog2 = calc_pseudolikelihood(dset, dat = PseudolikelihoodPrealloc(100000))
 @test plog2 > plog  # it increases!

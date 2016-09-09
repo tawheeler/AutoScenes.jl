@@ -146,10 +146,9 @@ function calc_acceptance_probability(
         return 0.0 # do not accept out-of-bounds scenes
     end
 
-    log_p_current = evaluate_dot!(structure, vehicle_index, factors, scene, roadway, rec)
-
     veh = scene.vehicles[vehicle_index]
     state_current = veh.state
+    log_p_current = evaluate_dot!(structure, vehicle_index, factors, scene, roadway, rec)
     veh.state = state_propose
     log_p_propose = evaluate_dot!(structure, vehicle_index, factors, scene, roadway, rec)
     veh.state = state_current

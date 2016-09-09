@@ -136,24 +136,24 @@ type StochasticGradientAscentParams
 
     step_params::GradientStepParams
 
-    function StochasticGradientAscentParams(;
-        n_epochs::Int = 1,
-        n_samples::Int = 1000,
-        batch_size_multiplier::Float64 = 1.0,
-        learning_rate_multiplier::Float64 = 1.0,
-        momentum_param_multiplier::Float64 = 1.0,
-        step_params::GradientStepParams = GradientStepParams(),
-        )
+    # function StochasticGradientAscentParams(;
+    #     n_epochs::Int = 1,
+    #     n_samples::Int = 1000,
+    #     batch_size_multiplier::Float64 = 1.0,
+    #     learning_rate_multiplier::Float64 = 1.0,
+    #     momentum_param_multiplier::Float64 = 1.0,
+    #     step_params::GradientStepParams = GradientStepParams(),
+    #     )
 
-        retval = new()
-        retval.n_epochs = n_epochs
-        retval.n_samples = n_samples
-        retval.batch_size_multiplier = batch_size_multiplier
-        retval.learning_rate_multiplier = learning_rate_multiplier
-        retval.momentum_param_multiplier = momentum_param_multiplier
-        retval.step_params = step_params
-        retval
-    end
+    #     retval = new()
+    #     retval.n_epochs = n_epochs
+    #     retval.n_samples = n_samples
+    #     retval.batch_size_multiplier = batch_size_multiplier
+    #     retval.learning_rate_multiplier = learning_rate_multiplier
+    #     retval.momentum_param_multiplier = momentum_param_multiplier
+    #     retval.step_params = step_params
+    #     retval
+    # end
 end
 
 
