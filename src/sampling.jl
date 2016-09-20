@@ -106,7 +106,7 @@ function calc_acceptance_probability(
 
     logprob_rev_trans = 0.0
     Δlo, Δhi = get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
-    logprob_rev_trans += logpdf(TruncatedNormal(MH_transition[1], Δlo, Δhi), Δ_propose[1])
+    logprob_rev_trans += logpdf(Truncated(MH_transition[1], Δlo, Δhi), Δ_propose[1])
     if Δlo > 0.0 || Δhi < 0.0
         scene[vehicle_index].state = state_orig
         return 0.0
@@ -114,21 +114,21 @@ function calc_acceptance_probability(
 
     update!(rec, scene)
     Δlo, Δhi = get_relative_variable_bounds_t(rec, roadway, vehicle_index)
-    logprob_rev_trans += logpdf(TruncatedNormal(MH_transition[2], Δlo, Δhi), Δ_propose[2])
+    logprob_rev_trans += logpdf(Truncated(MH_transition[2], Δlo, Δhi), Δ_propose[2])
     if Δlo > 0.0 || Δhi < 0.0
         scene[vehicle_index].state = state_orig
         return 0.0
     end
 
     Δlo, Δhi = get_relative_variable_bounds_v(scene, vehicle_index)
-    logprob_rev_trans += logpdf(TruncatedNormal(MH_transition[3], Δlo, Δhi), Δ_propose[3])
+    logprob_rev_trans += logpdf(Truncated(MH_transition[3], Δlo, Δhi), Δ_propose[3])
     if Δlo > 0.0 || Δhi < 0.0
         scene[vehicle_index].state = state_orig
         return 0.0
     end
 
     Δlo, Δhi = get_relative_variable_bounds_ϕ(scene, vehicle_index)
-    logprob_rev_trans += logpdf(TruncatedNormal(MH_transition[4], Δlo, Δhi), Δ_propose[4])
+    logprob_rev_trans += logpdf(Truncated(MH_transition[4], Δlo, Δhi), Δ_propose[4])
     if Δlo > 0.0 || Δhi < 0.0
         scene[vehicle_index].state = state_orig
         return 0.0
@@ -174,10 +174,10 @@ function metropolis_hastings_step!(
 
     # use TruncatedNormals to enforce bounds
     logprob_trans = 0.0
-    trunc_s = TruncatedNormal(MH_transition[1], Δlo_s, Δhi_s)
-    trunc_t = TruncatedNormal(MH_transition[2], Δlo_t, Δhi_t)
-    trunc_v = TruncatedNormal(MH_transition[3], Δlo_v, Δhi_v)
-    trunc_ϕ = TruncatedNormal(MH_transition[4], Δlo_ϕ, Δhi_ϕ)
+    trunc_s = Truncated(MH_transition[1], Δlo_s, Δhi_s)
+    trunc_t = Truncated(MH_transition[2], Δlo_t, Δhi_t)
+    trunc_v = Truncated(MH_transition[3], Δlo_v, Δhi_v)
+    trunc_ϕ = Truncated(MH_transition[4], Δlo_ϕ, Δhi_ϕ)
     Δ_propose[1] = rand(trunc_s)
     Δ_propose[2] = rand(trunc_t)
     Δ_propose[3] = rand(trunc_v)
