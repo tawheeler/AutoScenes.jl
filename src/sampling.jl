@@ -1,6 +1,8 @@
+typealias MHTransition Tuple{Normal, Normal, Normal, Normal} # {Δs,Δt,Δv,Δϕ}
+
 type SceneGenerator
     factors::Vector{SharedFactor}
-    propsal_distribution::ContinuousMultivariateDistribution
+    propsal_distribution::MHTransition
     burnin::Int # number of burn-in steps
 
     Δ_propose::Vector{Float64}
@@ -9,7 +11,7 @@ type SceneGenerator
 
     function SceneGenerator(
         factors::Vector{SharedFactor},
-        propsal_distribution::ContinuousMultivariateDistribution,
+        propsal_distribution::MHTransition,
         burnin::Int;
         Δ_propose::Vector{Float64}=Array(Float64, 4),
         mem::CPAMemory=CPAMemory(),
@@ -45,52 +47,6 @@ function get_shifted_state(
                ϕ₂=state.posF.ϕ + Δϕ,
                t₂=state.posF.t + Δt,
                v₂=state.v + Δv)
-end
-function adheres_to_structure(
-    state_propose::VehicleState,
-    vehicle_index::Int,
-    scene::Scene,
-    rec::SceneRecord,
-    structure::SceneStructure,
-    roadway::Roadway,
-    mem::CPAMemory,
-    )
-
-    state_orig = scene[vehicle_index].state
-    scene[vehicle_index].state = state_propose
-
-    Δlo, Δhi = get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
-    if Δlo > 0.0 || Δhi < 0.0
-        scene[vehicle_index].state = state_orig
-        return false
-    end
-
-    update!(rec, scene)
-    Δlo, Δhi = get_relative_variable_bounds_t(rec, roadway, vehicle_index)
-    if Δlo > 0.0 || Δhi < 0.0
-        scene[vehicle_index].state = state_orig
-        return false
-    end
-
-    Δlo, Δhi = get_relative_variable_bounds_v(scene, vehicle_index)
-    if Δlo > 0.0 || Δhi < 0.0
-        scene[vehicle_index].state = state_orig
-        return false
-    end
-
-    Δlo, Δhi = get_relative_variable_bounds_ϕ(scene, vehicle_index)
-    if Δlo > 0.0 || Δhi < 0.0
-        scene[vehicle_index].state = state_orig
-        return false
-    end
-
-    if get_first_collision(scene, vehicle_index, mem).is_colliding
-        scene[vehicle_index].state = state_orig
-        return false
-    end
-
-    scene[vehicle_index].state = state_orig
-    true
 end
 function draw_active_vehicle_index(scene::Scene, structure::SceneStructure)
     active_veh_index = rand(1:length(structure.active_vehicles))
@@ -140,64 +96,100 @@ function calc_acceptance_probability(
     structure::SceneStructure,
     roadway::Roadway,
     mem::CPAMemory,
+    MH_transition::MHTransition,
+    logprob_trans::Float64,
+    Δ_propose::Vector{Float64},
     )
 
-    if !adheres_to_structure(state_propose, vehicle_index, scene, rec, structure, roadway, mem)
-        return 0.0 # do not accept out-of-bounds scenes
+    state_orig = scene[vehicle_index].state
+    scene[vehicle_index].state = state_propose
+
+    logprob_rev_trans = 0.0
+    Δlo, Δhi = get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
+    logprob_rev_trans += logpdf(TruncatedNormal(MH_transition[1], Δlo, Δhi), Δ_propose[1])
+    if Δlo > 0.0 || Δhi < 0.0
+        scene[vehicle_index].state = state_orig
+        return 0.0
     end
 
-    veh = scene.vehicles[vehicle_index]
+    update!(rec, scene)
+    Δlo, Δhi = get_relative_variable_bounds_t(rec, roadway, vehicle_index)
+    logprob_rev_trans += logpdf(TruncatedNormal(MH_transition[2], Δlo, Δhi), Δ_propose[2])
+    if Δlo > 0.0 || Δhi < 0.0
+        scene[vehicle_index].state = state_orig
+        return 0.0
+    end
+
+    Δlo, Δhi = get_relative_variable_bounds_v(scene, vehicle_index)
+    logprob_rev_trans += logpdf(TruncatedNormal(MH_transition[3], Δlo, Δhi), Δ_propose[3])
+    if Δlo > 0.0 || Δhi < 0.0
+        scene[vehicle_index].state = state_orig
+        return 0.0
+    end
+
+    Δlo, Δhi = get_relative_variable_bounds_ϕ(scene, vehicle_index)
+    logprob_rev_trans += logpdf(TruncatedNormal(MH_transition[4], Δlo, Δhi), Δ_propose[4])
+    if Δlo > 0.0 || Δhi < 0.0
+        scene[vehicle_index].state = state_orig
+        return 0.0
+    end
+
+    if get_first_collision(scene, vehicle_index, mem).is_colliding
+        scene[vehicle_index].state = state_orig
+        return 0.0
+    end
+    scene[vehicle_index].state = state_orig
+
+    veh = scene[vehicle_index]
     state_current = veh.state
     log_p_current = evaluate_dot!(structure, vehicle_index, factors, scene, roadway, rec)
     veh.state = state_propose
     log_p_propose = evaluate_dot!(structure, vehicle_index, factors, scene, roadway, rec)
-    veh.state = state_current
+    veh.state = state_orig
 
-    min(1.0, exp(log_p_propose - log_p_current))
     # min(1.0, p_propose / p_current)
+    min(1.0, exp(logprob_rev_trans - logprob_trans + log_p_propose - log_p_current))
 end
 function metropolis_hastings_step!(
     scene::Scene,
     structure::SceneStructure,
     roadway::Roadway,
     factors::Vector{SharedFactor},
-    propsal_distribution::ContinuousMultivariateDistribution,
-    Δ_propose::Vector{Float64}=Array(Float64, 4), # preallocated memory
-    mem::CPAMemory=CPAMemory(),
-    rec::SceneRecord=SceneRecord(1, NaN),
+    MH_transition::MHTransition,
+    Δ_propose::Vector{Float64} = Array(Float64, 4), # preallocated memory
+    mem::CPAMemory = CPAMemory(),
+    rec::SceneRecord = SceneRecord(1, NaN),
     )
 
     #=
     pick a random vehicle and shift it
     =#
 
-    rand!(propsal_distribution, Δ_propose)
-    vehicle_index = draw_active_vehicle_index(scene, structure)
-
     update!(rec, scene)
-    Δlo, Δhi = get_relative_variable_bounds_t(rec, roadway, vehicle_index)
-    if Δ_propose[2] < Δlo || Δ_propose[2] > Δhi
-        return scene
-    end
+    vehicle_index = draw_active_vehicle_index(scene, structure)
+    Δlo_s, Δhi_s = get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
+    Δlo_t, Δhi_t = get_relative_variable_bounds_t(rec, roadway, vehicle_index)
+    Δlo_v, Δhi_v = get_relative_variable_bounds_v(scene, vehicle_index)
+    Δlo_ϕ, Δhi_ϕ = get_relative_variable_bounds_ϕ(scene, vehicle_index)
 
-    Δlo, Δhi = get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
-    if Δ_propose[1] < Δlo || Δ_propose[1] > Δhi
-        return scene
-    end
-
-    Δlo, Δhi = get_relative_variable_bounds_v(scene, vehicle_index)
-    if Δ_propose[3] < Δlo || Δ_propose[3] > Δhi
-        return scene
-    end
-
-    Δlo, Δhi = get_relative_variable_bounds_ϕ(scene, vehicle_index)
-    if Δ_propose[4] < Δlo || Δ_propose[4] > Δhi
-        return scene
-    end
+    # use TruncatedNormals to enforce bounds
+    logprob_trans = 0.0
+    trunc_s = TruncatedNormal(MH_transition[1], Δlo_s, Δhi_s)
+    trunc_t = TruncatedNormal(MH_transition[2], Δlo_t, Δhi_t)
+    trunc_v = TruncatedNormal(MH_transition[3], Δlo_v, Δhi_v)
+    trunc_ϕ = TruncatedNormal(MH_transition[4], Δlo_ϕ, Δhi_ϕ)
+    Δ_propose[1] = rand(trunc_s)
+    Δ_propose[2] = rand(trunc_t)
+    Δ_propose[3] = rand(trunc_v)
+    Δ_propose[4] = rand(trunc_ϕ)
+    logprob_trans += logpdf(trunc_s, Δ_propose[1])
+    logprob_trans += logpdf(trunc_t, Δ_propose[2])
+    logprob_trans += logpdf(trunc_v, Δ_propose[3])
+    logprob_trans += logpdf(trunc_ϕ, Δ_propose[4])
 
     state_propose = get_shifted_state(scene, structure, roadway, vehicle_index, Δ_propose)
     if rand() ≤ calc_acceptance_probability(state_propose, vehicle_index, factors,
-                                            scene, rec, structure, roadway, mem)
+                                            scene, rec, structure, roadway, mem, MH_transition, logprob_trans, Δ_propose)
         scene[vehicle_index].state = state_propose
     end
 
@@ -208,7 +200,7 @@ function metropolis_hastings!(
     structure::SceneStructure,
     roadway::Roadway,
     factors::Vector{SharedFactor},
-    propsal_distribution::ContinuousMultivariateDistribution,
+    propsal_distribution::MHTransition,
     n_steps::Int,
     Δ_propose::Vector{Float64}=Array(Float64, 4), # preallocated memory
     mem::CPAMemory=CPAMemory(),
