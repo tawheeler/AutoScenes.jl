@@ -189,6 +189,34 @@ function step!(params::GradientStepParams)
 
     dset
 end
+function parallel_step!(params::GradientStepParams)
+
+    dset = params.grad_params.batch_sampler.dset
+    α = params.learning_rate
+    γ = params.momentum_param
+
+    # apply the momentum speed update
+    for (factor_index, ϕ) in enumerate(dset.factors)
+        grad_vel_arr = params.grad_velocitities[factor_index]
+
+        gp = params.grad_params
+        gradients = pmap(feature_index->calc_pseudolikelihood_gradient(
+            factor_index, feature_index, deepcopy(dset.factors),
+            SceneStructureRoadway[next!(gp.batch_sampler) for _ in 1:params.batch_size],
+            gp.n_samples_monte_carlo_integration, gp.regularization), 1:length(grad_vel_arr))
+
+        for feature_index in 1 : length(grad_vel_arr)
+            grad_vel = grad_vel_arr[feature_index]
+            grad_vel_arr[feature_index] = γ*grad_vel + α*gradients[feature_index]
+            for i in 1 : length(ϕ.weights)
+                grad_vel = clamp(grad_vel_arr[i], params.gradient_min, params.gradient_max)
+                ϕ.weights[i] = clamp(ϕ.weights[i] + grad_vel, params.factor_weight_min, params.factor_weight_max)
+            end
+        end
+    end
+
+    dset
+end
 
 function stochastic_gradient_ascent!(params::StochasticGradientAscentParams)
 

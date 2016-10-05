@@ -86,6 +86,7 @@ export
     alloc_grad_velocities,
     stochastic_gradient_ascent!,
     step!,
+    parallel_step!,
 
     #####################################
     # sampling
