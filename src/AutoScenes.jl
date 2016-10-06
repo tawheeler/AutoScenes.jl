@@ -34,6 +34,7 @@ export
 
     gen_scene_structure,
     evaluate_dot!,
+    get_vehicle_indeces,
 
     #####################################
     # subscene_extraction
