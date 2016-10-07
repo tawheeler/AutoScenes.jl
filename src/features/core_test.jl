@@ -1,3 +1,30 @@
+#=
+ϕ: ∈ (-0.82, 0.82)
+    Normal(0.0,  0.82)
+	f = [  ϕ²,   ϕ⁴]
+	w = [-1.0, -8.6]
+
+t: ∈ (-1.7, 1.7)
+    Normal(0.0,  1.7)
+    f = [  t²,   t⁴]
+    w = [-1.0, -8.6]
+
+v: ∈ (-1, 32)
+    Normal(13,  32.0-13.0)
+    f = [   v,   v²,  v³,    v⁴]
+    w = [-1.5, -10, -2.5, -10.0]
+
+Δv: ∈ (-33, 33)
+    Normal(0,  15.0)
+    f = [ Δv², Δv⁴]
+    w = [-9, 4.5]
+
+Δs: ∈ (0, 100)
+    Normal(30,  100.0)
+    f = [ Δs¹,  Δs², Δs³, Δs⁴]
+    w = [  -5, -7.5, 0.5, 2.0]
+=#
+
 const BOUNDS_V = (-1.0, 32.0) # m/s
 const BOUNDS_ϕ = (-0.82, 0.82) # rad
 
@@ -123,13 +150,13 @@ end
 
 const FEATURE_TEMPLATE_ROAD = GraphFeatureTemplate(FeatureForms.ROAD,
         [Normal( 0.0,  1.7), # t
-         Normal(13.0, 30.0), # v
-         Normal( 0.0,  0.1), # ϕ
+         Normal(13.0, 32.0-13.0), # v
+         Normal( 0.0,  0.82), # ϕ
         ]
     )
 const FEATURE_TEMPLATE_FOLLOW = GraphFeatureTemplate(FeatureForms.FOLLOW,
         [Normal(30.0, 100.0), # Δs
-         Normal( 0.0,  10.0), # Δv
+         Normal( 0.0,  18.0), # Δv
         ]
     )
 const FEATURE_TEMPLATE_NEIGHBOR = GraphFeatureTemplate(FeatureForms.NEIGHBOR, Array(Normal{Float64}, 2))
@@ -141,36 +168,32 @@ function create_shared_factors()
 
     # Road
     road_instances = GraphFeatureInstance[]
-    max_pow = 3
-    for i in 0:max_pow
-        for j in 0:max_pow-i
-            for k in 0:max_pow-i-j
-                if !(i == j == k == 0)
-                    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [i*1.0, j*1.0, k*1.0]))
-                end
-            end
-        end
-    end
-    retval[FeatureForms.ROAD] = SharedFactor(FEATURE_TEMPLATE_ROAD, road_instances, [1.0,-8.0,1.0,-7.240792406856352,-2.204165116558128,1.0,-2.886674273532871,1.0,-0.2247779733812241,-5.081529987189127,-8.0,1.0,0.16304969740143477,0.38288786108235356,0.5385319796700508,-8.0,1.0,1.0,1.0])
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [2.0, 0.0, 0.0])) # t
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [4.0, 0.0, 0.0]))
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [0.0, 1.0, 0.0])) # v
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [0.0, 2.0, 0.0]))
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [0.0, 3.0, 0.0]))
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [0.0, 4.0, 0.0]))
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [0.0, 0.0, 2.0])) # ϕ
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [0.0, 0.0, 4.0]))
+    retval[FeatureForms.ROAD] = SharedFactor(FEATURE_TEMPLATE_ROAD, road_instances, [-1.0, -8.6,
+                                                                                     -1.5, -10, -2.5, -10.0,
+                                                                                     -1.0, -8.6])
 
     # Follow
     follow_instances = GraphFeatureInstance[]
-    max_pow = 3
-    for i in 0 : max_pow
-        for j in 0 : max_pow-i
-            if !(i == j == 0)
-                push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [i*1.0,j*1.0]))
-            end
-        end
-    end
-    retval[FeatureForms.FOLLOW] = SharedFactor(FEATURE_TEMPLATE_FOLLOW, follow_instances, [-0.3504825678383256,-8.0,-5.334809166857241,-0.06710861976650977,0.04997594214570321,1.0,-3.7595322914753613,0.4288825880482978,0.2647006728070569])
+    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [2.0,0.0])) # Δv
+    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [4.0,0.0]))
+    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [0.0,1.0])) # Δs
+    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [0.0,2.0]))
+    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [0.0,3.0]))
+    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [0.0,4.0]))
+    retval[FeatureForms.FOLLOW] = SharedFactor(FEATURE_TEMPLATE_FOLLOW, follow_instances, [-9, 4.5,
+                                                                                           -5, -7.5, 0.5, 2.0])
 
     # Neighbor
     neighbor_instances = GraphFeatureInstance[]
-    for i in 1 : 5
-        push!(neighbor_instances, GraphFeatureInstance(FeatureForms.NEIGHBOR, i))
-    end
-    retval[FeatureForms.NEIGHBOR] = SharedFactor(FEATURE_TEMPLATE_NEIGHBOR, neighbor_instances, [0.13768204210436297,0.38153923228240677,0.6262272408309622,0.4183498468012017,1.0])
+    retval[FeatureForms.NEIGHBOR] = SharedFactor(FEATURE_TEMPLATE_NEIGHBOR, neighbor_instances, Float64[])
 
     retval
-endo
+end
