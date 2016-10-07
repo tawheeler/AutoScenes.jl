@@ -39,6 +39,11 @@ baremodule FeatureForms
     const NEIGHBOR = 3
 end
 
+function _set_standardize_and_clamp!(template::GraphFeatureTemplate, v::Float64, i::Int)
+    template.values[i] = clamp(_standardize(v, template.normals[i]), -1.0, 1.0)
+    template
+end
+
 function AutomotiveDrivingModels.extract!(
     template::GraphFeatureTemplate,
     scene::Scene,
@@ -49,9 +54,9 @@ function AutomotiveDrivingModels.extract!(
     if template.form == FeatureForms.ROAD
 
         vehicle_index = vehicle_indeces[1]
-        _set_and_standardize!(template, scene[vehicle_index].state.posF.t, 1)
-        _set_and_standardize!(template, scene[vehicle_index].state.v,      2)
-        _set_and_standardize!(template, scene[vehicle_index].state.posF.ϕ, 3)
+        _set_standardize_and_clamp!(template, scene[vehicle_index].state.posF.t, 1)
+        _set_standardize_and_clamp!(template, scene[vehicle_index].state.v,      2)
+        _set_standardize_and_clamp!(template, scene[vehicle_index].state.posF.ϕ, 3)
     elseif template.form == FeatureForms.FOLLOW
 
         veh_rear = scene[vehicle_indeces[1]]
@@ -61,8 +66,8 @@ function AutomotiveDrivingModels.extract!(
         Δs = relpos.Δs - veh_rear.def.length/2 -  veh_fore.def.length/2
         Δv = veh_fore.state.v - veh_rear.state.v
 
-        _set_and_standardize!(template, Δs, 1)
-        _set_and_standardize!(template, Δv, 2)
+        _set_standardize_and_clamp!(template, Δs, 1)
+        _set_standardize_and_clamp!(template, Δv, 2)
     else #if template.form == FeatureForms.NEIGHBOR
 
         vehA = scene[vehicle_indeces[1]]
@@ -196,4 +201,17 @@ function create_shared_factors()
     retval[FeatureForms.NEIGHBOR] = SharedFactor(FEATURE_TEMPLATE_NEIGHBOR, neighbor_instances, Float64[])
 
     retval
+end
+
+function get_start_scene_and_roadway()
+    roadway = gen_straight_roadway(1, 1000.0, lane_width=1.7)
+
+    scene = Scene([
+        Vehicle(VehicleState(VecSE2(100.0,0.0,0.0), roadway, 13.0), VehicleDef(1, AgentClass.CAR, 4.0, 2.0)),
+        Vehicle(VehicleState(VecSE2(120.0,0.0,0.0), roadway, 13.0), VehicleDef(2, AgentClass.CAR, 4.0, 2.0)),
+        Vehicle(VehicleState(VecSE2(160.0,0.0,0.0), roadway, 13.0), VehicleDef(3, AgentClass.CAR, 4.0, 2.0)),
+        Vehicle(VehicleState(VecSE2(204.0,0.0,0.0), roadway, 13.0), VehicleDef(4, AgentClass.CAR, 4.0, 2.0)),
+    ])
+
+    (scene, roadway)
 end

@@ -8,7 +8,7 @@ using NGSIM
 trajdata = load_trajdata(4)
 scene = get!(Scene(), trajdata, 4000)
 
-const REGIONS = Dict{ASCIIString, SubSceneExtractParams}(
+const REGIONS = Dict{String, SubSceneExtractParams}(
   "101A" => SubSceneExtractParams(VecSE2(1966395.000, 570900.000, deg2rad(138)), 100.0, 41.0),
   "101B" => SubSceneExtractParams(VecSE2(1966501.608, 570804.793, 2.425), 100.0, 25.0),
   "80A"  => SubSceneExtractParams(VecSE2(1841794.208, 650650.640, deg2rad(-81)), 100.0, 32.0),
