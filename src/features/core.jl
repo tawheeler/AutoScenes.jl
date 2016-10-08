@@ -22,9 +22,9 @@ function AutomotiveDrivingModels.extract!(
     if template.form == FeatureForms.ROAD
 
         vehicle_index = vehicle_indeces[1]
-        _set_standardize_and_clamp!!(template, scene[vehicle_index].state.posF.t, 1)
-        _set_standardize_and_clamp!!(template, scene[vehicle_index].state.v,      2)
-        _set_standardize_and_clamp!!(template, scene[vehicle_index].state.posF.ϕ, 3)
+        _set_standardize_and_clamp!(template, scene[vehicle_index].state.posF.t, 1)
+        _set_standardize_and_clamp!(template, scene[vehicle_index].state.v,      2)
+        _set_standardize_and_clamp!(template, scene[vehicle_index].state.posF.ϕ, 3)
     elseif template.form == FeatureForms.FOLLOW
 
         veh_rear = scene[vehicle_indeces[1]]
@@ -34,8 +34,8 @@ function AutomotiveDrivingModels.extract!(
         Δs = relpos.Δs - veh_rear.def.length/2 -  veh_fore.def.length/2
         Δv = veh_fore.state.v - veh_rear.state.v
 
-        _set_standardize_and_clamp!!(template, Δs, 1)
-        _set_standardize_and_clamp!!(template, Δv, 2)
+        _set_standardize_and_clamp!(template, Δs, 1)
+        _set_standardize_and_clamp!(template, Δv, 2)
     else #if template.form == FeatureForms.NEIGHBOR
 
         vehA = scene[vehicle_indeces[1]]
