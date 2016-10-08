@@ -63,6 +63,7 @@ export
     # learning
     PseudolikelihoodPrealloc,
 
+    reset_weights!,
     calc_pseudolikelihood,
     calc_pseudolikelihood_gradient,
 
@@ -103,7 +104,7 @@ export
 
 include(Pkg.dir("AutoScenes", "src", "features.jl"))
 include(Pkg.dir("AutoScenes", "src", "factors.jl"))
-include(Pkg.dir("AutoScenes", "src", "features", "core_test.jl"))
+include(Pkg.dir("AutoScenes", "src", "features", "core.jl"))
 include(Pkg.dir("AutoScenes", "src", "scene_structures.jl"))
 include(Pkg.dir("AutoScenes", "src", "subscene_extraction.jl"))
 include(Pkg.dir("AutoScenes", "src", "structure_dataset.jl"))

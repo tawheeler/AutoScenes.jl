@@ -765,3 +765,12 @@ function calc_pseudolikelihood_gradient(
 
     retval
 end
+
+#####################
+
+function reset_weights!(factors::Vector{SharedFactor}, σ::Float64=1.0)
+    for ϕ in factors
+        copy!(ϕ.weights, σ*randn(Float64, length(ϕ.weights)))
+    end
+    factors
+end

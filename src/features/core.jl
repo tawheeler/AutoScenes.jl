@@ -22,9 +22,9 @@ function AutomotiveDrivingModels.extract!(
     if template.form == FeatureForms.ROAD
 
         vehicle_index = vehicle_indeces[1]
-        _set_and_standardize!(template, scene[vehicle_index].state.posF.t, 1)
-        _set_and_standardize!(template, scene[vehicle_index].state.v,      2)
-        _set_and_standardize!(template, scene[vehicle_index].state.posF.ϕ, 3)
+        _set_standardize_and_clamp!!(template, scene[vehicle_index].state.posF.t, 1)
+        _set_standardize_and_clamp!!(template, scene[vehicle_index].state.v,      2)
+        _set_standardize_and_clamp!!(template, scene[vehicle_index].state.posF.ϕ, 3)
     elseif template.form == FeatureForms.FOLLOW
 
         veh_rear = scene[vehicle_indeces[1]]
@@ -34,8 +34,8 @@ function AutomotiveDrivingModels.extract!(
         Δs = relpos.Δs - veh_rear.def.length/2 -  veh_fore.def.length/2
         Δv = veh_fore.state.v - veh_rear.state.v
 
-        _set_and_standardize!(template, Δs, 1)
-        _set_and_standardize!(template, Δv, 2)
+        _set_standardize_and_clamp!!(template, Δs, 1)
+        _set_standardize_and_clamp!!(template, Δv, 2)
     else #if template.form == FeatureForms.NEIGHBOR
 
         vehA = scene[vehicle_indeces[1]]
@@ -123,13 +123,13 @@ end
 
 const FEATURE_TEMPLATE_ROAD = GraphFeatureTemplate(FeatureForms.ROAD,
         [Normal( 0.0,  1.7), # t
-         Normal(13.0, 30.0), # v
-         Normal( 0.0,  0.1), # ϕ
+         Normal(13.0, 32.0-13.0), # v
+         Normal( 0.0,  0.82), # ϕ
         ]
     )
 const FEATURE_TEMPLATE_FOLLOW = GraphFeatureTemplate(FeatureForms.FOLLOW,
         [Normal(30.0, 100.0), # Δs
-         Normal( 0.0,  10.0), # Δv
+         Normal( 0.0,  18.0), # Δv
         ]
     )
 const FEATURE_TEMPLATE_NEIGHBOR = GraphFeatureTemplate(FeatureForms.NEIGHBOR, Array(Normal{Float64}, 2))
@@ -173,4 +173,4 @@ function create_shared_factors()
     retval[FeatureForms.NEIGHBOR] = SharedFactor(FEATURE_TEMPLATE_NEIGHBOR, neighbor_instances, [0.13768204210436297,0.38153923228240677,0.6262272408309622,0.4183498468012017,1.0])
 
     retval
-endo
+end

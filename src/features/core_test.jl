@@ -39,11 +39,6 @@ baremodule FeatureForms
     const NEIGHBOR = 3
 end
 
-function _set_standardize_and_clamp!(template::GraphFeatureTemplate, v::Float64, i::Int)
-    template.values[i] = clamp(_standardize(v, template.normals[i]), -1.0, 1.0)
-    template
-end
-
 function AutomotiveDrivingModels.extract!(
     template::GraphFeatureTemplate,
     scene::Scene,
@@ -203,15 +198,13 @@ function create_shared_factors()
     retval
 end
 
-function get_start_scene_and_roadway()
-    roadway = gen_straight_roadway(1, 1000.0, lane_width=1.7)
+function get_start_scene_and_roadway(ncars::Int)
+    roadway = gen_straight_roadway(1, 100000.0, lane_width=1.7)
 
-    scene = Scene([
-        Vehicle(VehicleState(VecSE2(100.0,0.0,0.0), roadway, 13.0), VehicleDef(1, AgentClass.CAR, 4.0, 2.0)),
-        Vehicle(VehicleState(VecSE2(120.0,0.0,0.0), roadway, 13.0), VehicleDef(2, AgentClass.CAR, 4.0, 2.0)),
-        Vehicle(VehicleState(VecSE2(160.0,0.0,0.0), roadway, 13.0), VehicleDef(3, AgentClass.CAR, 4.0, 2.0)),
-        Vehicle(VehicleState(VecSE2(204.0,0.0,0.0), roadway, 13.0), VehicleDef(4, AgentClass.CAR, 4.0, 2.0)),
-    ])
+    vehicles = Array(Vehicle, ncars)
+    for i in 1 : ncars
+        vehicles[i] = Vehicle(VehicleState(VecSE2(100.0 + (i-1)*46.0,0.0,0.0), roadway, 13.0), VehicleDef(i, AgentClass.CAR, 4.0, 2.0))
+    end
 
-    (scene, roadway)
+    (Scene(vehicles), roadway)
 end

@@ -26,3 +26,7 @@ function _set_and_standardize!(template::GraphFeatureTemplate, v::Float64, i::In
     template.values[i] = _standardize(v, template.normals[i])
     template
 end
+function _set_standardize_and_clamp!(template::GraphFeatureTemplate, v::Float64, i::Int)
+    template.values[i] = clamp(_standardize(v, template.normals[i]), -1.0, 1.0)
+    template
+end

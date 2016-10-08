@@ -1,7 +1,7 @@
 addprocs(4)
 
 using AutomotiveDrivingModels
-using AutoScenes
+@everywhere using AutoScenes
 using AutoViz
 using NGSIM
 
