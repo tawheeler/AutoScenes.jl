@@ -32,11 +32,17 @@ end
 
 dat = PseudolikelihoodPrealloc(50)
 params = GradientStepParams(BatchSampler(dset))
-params.grad_params.n_samples_monte_carlo_integration = 5
-params.grad_params.n_samples_monte_carlo_pseudolikelihood = 5
+params.grad_params.n_samples_monte_carlo_integration = 20
+params.grad_params.n_samples_monte_carlo_pseudolikelihood = 20
+params.factor_weight_min = -30.0
+params.factor_weight_max =  20.0
+params.gradient_min = -5.0
+params.gradient_max = 5.0
 
-learning_rate = 0.01
+learning_rate = 0.5
+learning_rate_decay = 0.99
 batch_size = 2
+batch_size_increase = 2
 t_start = now()
 
 iter = 0
@@ -61,6 +67,6 @@ while iter < typemax(Int)
     end
     println("")
 
-    learning_rate *= 0.95
-    batch_size += 1
+    learning_rate *= learning_rate_decay
+    batch_size = min(length(dset), batch_size + batch_size_increase)
 end
