@@ -15,10 +15,10 @@ end
 immutable GraphFeatureInstance
     form::Int
     index::Int # for discrete values
-    exponents::Vector{Float64} # exponents for each value
+    exponents::Vector{Int} # exponents for each value
 end
-GraphFeatureInstance(form::Int, index::Int) = GraphFeatureInstance(form, index, Float64[])
-GraphFeatureInstance(form::Int, exponents::Vector{Float64}) = GraphFeatureInstance(form, 0, exponents)
+GraphFeatureInstance(form::Int, index::Int) = GraphFeatureInstance(form, index, Int[])
+GraphFeatureInstance(form::Int, exponents::Vector{Int}) = GraphFeatureInstance(form, 0, exponents)
 
 _standardize(v::Float64, μ::Float64, σ::Float64) = (v-μ)/σ
 _standardize(v::Float64, normal::Normal) = (v-normal.μ)/normal.σ

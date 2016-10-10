@@ -146,12 +146,12 @@ function create_shared_factors()
         for j in 0:max_pow-i
             for k in 0:max_pow-i-j
                 if !(i == j == k == 0)
-                    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [i*1.0, j*1.0, k*1.0]))
+                    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [i, j, k]))
                 end
             end
         end
     end
-    retval[FeatureForms.ROAD] = SharedFactor(FEATURE_TEMPLATE_ROAD, road_instances, [1.0,-8.0,1.0,-7.240792406856352,-2.204165116558128,1.0,-2.886674273532871,1.0,-0.2247779733812241,-5.081529987189127,-8.0,1.0,0.16304969740143477,0.38288786108235356,0.5385319796700508,-8.0,1.0,1.0,1.0])
+    retval[FeatureForms.ROAD] = SharedFactor(FEATURE_TEMPLATE_ROAD, road_instances, [-7.44583,-16.3951,5.16565,-30.0,-17.0643,15.9508,20.0,-2.00284,-30.0,-30.0,17.1201,-5.07435,20.0,20.0,-27.1647,20.0,-15.887,-30.0,-30.0])
 
     # Follow
     follow_instances = GraphFeatureInstance[]
@@ -159,18 +159,60 @@ function create_shared_factors()
     for i in 0 : max_pow
         for j in 0 : max_pow-i
             if !(i == j == 0)
-                push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [i*1.0,j*1.0]))
+                push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [i,j]))
             end
         end
     end
-    retval[FeatureForms.FOLLOW] = SharedFactor(FEATURE_TEMPLATE_FOLLOW, follow_instances, [-0.3504825678383256,-8.0,-5.334809166857241,-0.06710861976650977,0.04997594214570321,1.0,-3.7595322914753613,0.4288825880482978,0.2647006728070569])
+    retval[FeatureForms.FOLLOW] = SharedFactor(FEATURE_TEMPLATE_FOLLOW, follow_instances, [1.5447,20.0,-22.0025,-30.0,-15.9631,-17.2449,20.0,19.832,-29.9064])
 
     # Neighbor
     neighbor_instances = GraphFeatureInstance[]
     for i in 1 : 5
         push!(neighbor_instances, GraphFeatureInstance(FeatureForms.NEIGHBOR, i))
     end
-    retval[FeatureForms.NEIGHBOR] = SharedFactor(FEATURE_TEMPLATE_NEIGHBOR, neighbor_instances, [0.13768204210436297,0.38153923228240677,0.6262272408309622,0.4183498468012017,1.0])
+    retval[FeatureForms.NEIGHBOR] = SharedFactor(FEATURE_TEMPLATE_NEIGHBOR, neighbor_instances, [-21.9485,-21.1018,-13.5304,20.0,20.0])
 
     retval
 end
+
+#=
+iter: 28
+time: 9788612 milliseconds
+learning rate: 0.3811713571735518
+batch_size:    56
+n_samples:
+weights:
+1  [5.89984,-18.9764,-28.9311,-30.0,-21.2736,19.8708,20.0,-25.8472,-30.0,-30.0,-7.55589,4.79533,19.5066,-18.9996,-30.0,20.0,-30.0,-30.0,-30.0]
+2  [-24.958,-15.6688,-5.7417,-30.0,-22.6837,-25.7289,20.0,-14.3953,-23.1918]
+3  [-23.3536,-25.0045,-23.795,20.0,20.0]
+
+iter: 68
+time: 45098135 milliseconds
+learning rate: 0.25499287312478264
+batch_size:    136
+n_samples:
+weights:
+1  [-7.60763,4.92289,19.963,-30.0,-23.4948,0.583121,20.0,1.64827,-30.0,-30.0,5.0555,-3.35636,20.0,20.0,-26.8478,20.0,-20.5293,-30.0,-29.556]
+2  [-22.3228,20.0,-5.54496,-30.0,-30.0,-18.9566,20.0,18.0309,-28.9458]
+3  [-11.3257,-10.8472,-29.0428,-7.00286,20.0]
+
+iter: 87
+time: 70130997 milliseconds
+learning rate: 0.21066711107738406
+batch_size:    174
+n_samples:
+weights:
+1  [5.06477,-10.6898,1.41138,-30.0,-23.5192,-0.0243049,20.0,1.13066,-30.0,-30.0,10.7815,-11.902,20.0,18.8176,-30.0,20.0,-26.8264,-30.0,-30.0]
+2  [-10.3414,19.9659,-22.2042,-30.0,-11.6497,-11.8009,20.0,15.7166,-29.3574]
+3  [-29.6686,-5.92442,-20.8276,8.13927,20.0]
+
+iter: 102
+time: 94210659 milliseconds
+learning rate: 0.18118600893024847
+batch_size:    204
+n_samples:
+weights:
+1  [-7.44583,-16.3951,5.16565,-30.0,-17.0643,15.9508,20.0,-2.00284,-30.0,-30.0,17.1201,-5.07435,20.0,20.0,-27.1647,20.0,-15.887,-30.0,-30.0]
+2  [1.5447,20.0,-22.0025,-30.0,-15.9631,-17.2449,20.0,19.832,-29.9064]
+3  [-21.9485,-21.1018,-13.5304,20.0,20.0]
+=#

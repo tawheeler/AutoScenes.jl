@@ -26,6 +26,9 @@ export
     evaluate_exp,
     create_shared_factors,
 
+    save_factors,
+    load_factors,
+
     #####################################
     # scene_structures
     LeadFollowRelationships,
@@ -48,6 +51,7 @@ export
     #####################################
     # structure_dataset
     SceneStructureDataset,
+    SceneSource,
 
     get_scene_structure_and_roadway!,
     pull_scene_dataset,

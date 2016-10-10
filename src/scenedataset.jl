@@ -42,6 +42,19 @@ function Base.push!(sdset::SceneDataset, scene::Scene, source::SceneSource, stru
     sdset
 end
 
+function Base.append!(sdset::SceneDataset, scenes::Vector{Scene}, sources::Vector{SceneSource})
+    for (scene, source) in zip(scenes, sources)
+        push!(sdset, scene, source)
+    end
+    sdset
+end
+function Base.append!(sdset::SceneDataset, scenes::Vector{Scene}, sources::Vector{SceneSource}, structures::Vector{SceneStructure})
+    for (scene, source, structure) in zip(scenes, sources, structures)
+        push!(sdset, scene, source, structure)
+    end
+    sdset
+end
+
 function Base.write(io::IO, sdset::SceneDataset)
     println(io, "SCENEDATASET")
 
