@@ -65,13 +65,13 @@ function create_shared_factors()
 
     # Road
     road_instances = GraphFeatureInstance[]
-    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [1.0])) # v
-    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [2.0])) # v²
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [1])) # v
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [2])) # v²
     retval[FeatureForms.ROAD] = SharedFactor(FEATURE_TEMPLATE_ROAD, road_instances, [1.0, 0.1])
 
     # Follow
     follow_instances = GraphFeatureInstance[]
-    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [1.0])) # Δv
+    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [1])) # Δv
     retval[FeatureForms.FOLLOW] = SharedFactor(FEATURE_TEMPLATE_FOLLOW, follow_instances, [1.0])
 
     retval
