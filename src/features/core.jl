@@ -132,7 +132,11 @@ const FEATURE_TEMPLATE_FOLLOW = GraphFeatureTemplate(FeatureForms.FOLLOW,
          Normal( 0.0,  18.0), # Δv
         ]
     )
-const FEATURE_TEMPLATE_NEIGHBOR = GraphFeatureTemplate(FeatureForms.NEIGHBOR, Array(Normal{Float64}, 2))
+const FEATURE_TEMPLATE_NEIGHBOR = GraphFeatureTemplate(FeatureForms.NEIGHBOR,
+        [Normal(0.0, 1.0), # t_CPA
+         Normal(0.0, 1.0), # d_CPA
+        ]
+    )
 
 function create_shared_factors()
 
@@ -141,7 +145,7 @@ function create_shared_factors()
 
     # Road
     road_instances = GraphFeatureInstance[]
-    max_pow = 3
+    max_pow = 4
     for i in 0:max_pow
         for j in 0:max_pow-i
             for k in 0:max_pow-i-j
@@ -151,11 +155,11 @@ function create_shared_factors()
             end
         end
     end
-    retval[FeatureForms.ROAD] = SharedFactor(FEATURE_TEMPLATE_ROAD, road_instances, [-7.44583,-16.3951,5.16565,-30.0,-17.0643,15.9508,20.0,-2.00284,-30.0,-30.0,17.1201,-5.07435,20.0,20.0,-27.1647,20.0,-15.887,-30.0,-30.0])
+    retval[FeatureForms.ROAD] = SharedFactor(FEATURE_TEMPLATE_ROAD, road_instances)
 
     # Follow
     follow_instances = GraphFeatureInstance[]
-    max_pow = 3
+    max_pow = 4
     for i in 0 : max_pow
         for j in 0 : max_pow-i
             if !(i == j == 0)
@@ -163,14 +167,14 @@ function create_shared_factors()
             end
         end
     end
-    retval[FeatureForms.FOLLOW] = SharedFactor(FEATURE_TEMPLATE_FOLLOW, follow_instances, [1.5447,20.0,-22.0025,-30.0,-15.9631,-17.2449,20.0,19.832,-29.9064])
+    retval[FeatureForms.FOLLOW] = SharedFactor(FEATURE_TEMPLATE_FOLLOW, follow_instances)
 
     # Neighbor
     neighbor_instances = GraphFeatureInstance[]
     for i in 1 : 5
         push!(neighbor_instances, GraphFeatureInstance(FeatureForms.NEIGHBOR, i))
     end
-    retval[FeatureForms.NEIGHBOR] = SharedFactor(FEATURE_TEMPLATE_NEIGHBOR, neighbor_instances, [-21.9485,-21.1018,-13.5304,20.0,20.0])
+    retval[FeatureForms.NEIGHBOR] = SharedFactor(FEATURE_TEMPLATE_NEIGHBOR, neighbor_instances)
 
     retval
 end
@@ -215,4 +219,29 @@ weights:
 1  [-7.44583,-16.3951,5.16565,-30.0,-17.0643,15.9508,20.0,-2.00284,-30.0,-30.0,17.1201,-5.07435,20.0,20.0,-27.1647,20.0,-15.887,-30.0,-30.0]
 2  [1.5447,20.0,-22.0025,-30.0,-15.9631,-17.2449,20.0,19.832,-29.9064]
 3  [-21.9485,-21.1018,-13.5304,20.0,20.0]
+
+
+iter: 66
+time: 33153198 milliseconds
+plogl: 0.0
+learning rate: 0.2601702613251532
+batch_size:    132
+n_samples:
+weights:
+1  [9.89248,10.4985,-25.6653,-30.0,9.26662,-16.439,20.0,-28.2553,-30.0,-30.0,-30.0,-16.2885,20.0,17.7262,-30.0,20.0,-26.5277,-30.0,-30.0]
+2  [19.0259,20.0,-14.1432,-30.0,-30.0,-14.9462,20.0,-25.3156,-27.9397]
+3  [20.0,-29.1932,-5.05623,20.0,20.0]
+
+iter: 96
+time: 64233501 milliseconds
+plogl: 0.0
+learning rate: 0.19244803944674235
+batch_size:    192
+n_samples:
+weights:
+1  [7.1126,11.6389,-7.79089,-30.0,-21.6173,-16.7177,20.0,-30.0,-30.0,-30.0,-5.4573,4.67055,19.9378,0.304955,-30.0,20.0,10.7591,-30.0,-29.3216]
+2  [20.0,19.3713,-10.6103,-30.0,-24.7867,-13.8049,20.0,-18.2035,-29.8087]
+3  [11.7443,-1.71497,-4.35869,-4.04628,20.0]
+
+scp wheelert@tula.stanford.edu:/scratch/wheelert/papers/2016_adas_validation_code/data/core_factors.txt core_factors_tula.txt
 =#
