@@ -69,15 +69,25 @@ function evaluate(template::GraphFeatureTemplate, instance::GraphFeatureInstance
         d_CPA = template.values[2]
 
         if instance.index == 1
-            retval = convert(Float64, t_CPA == 0.0 && d_CPA == 0.0)
+            if t_CPA == 0.0 && d_CPA == 0.0
+                retval = 1.0
+            end
         elseif instance.index == 2
-            retval = convert(Float64, 0.0 < t_CPA ≤ 1.0 && d_CPA ≤ 0.5)
+            if 0.0 < t_CPA ≤ 1.0 && d_CPA ≤ 0.5
+                retval = 1.0
+            end
         elseif instance.index == 3
-            retval = convert(Float64, 1.0 < t_CPA ≤ 4.0 && d_CPA ≤ 0.5)
+            if 1.0 < t_CPA ≤ 4.0 && d_CPA ≤ 0.5
+                retval = 1.0
+            end
         elseif instance.index == 4
-            retval = convert(Float64, 4.0 < t_CPA ≤ 10.0 && d_CPA ≤ 0.5)
+            if 4.0 < t_CPA ≤ 10.0 && d_CPA ≤ 0.5
+                retval = 1.0
+            end
         elseif instance.index == 5
-            retval = convert(Float64, 10.0 < t_CPA || d_CPA > 0.5)
+            if 10.0 < t_CPA || d_CPA > 0.5
+                retval = 1.0
+            end
         else
             error("instance.index of $(instance.index) not valid!")
         end
@@ -146,7 +156,7 @@ function create_shared_factors()
         for j in 0:max_pow-i
             for k in 0:max_pow-i-j
                 if !(i == j == k == 0)
-                    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [i*1.0, j*1.0, k*1.0]))
+                    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [i, j, k]))
                 end
             end
         end
@@ -159,7 +169,7 @@ function create_shared_factors()
     for i in 0 : max_pow
         for j in 0 : max_pow-i
             if !(i == j == 0)
-                push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [i*1.0,j*1.0]))
+                push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [i,j]))
             end
         end
     end

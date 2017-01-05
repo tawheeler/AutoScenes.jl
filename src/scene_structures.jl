@@ -93,3 +93,27 @@ function evaluate_dot!(
     end
     retval
 end
+function evaluate_dot!(
+    structure::SceneStructure,
+    factors::Vector{SharedFactor},
+    scene::Scene,
+    roadway::Roadway,
+    rec::SceneRecord,
+    target_vehicle_index::Int, # only evaluate for the target vehicle index
+    )
+
+    # NOTE: this will call extract!
+
+    retval = 0.0
+    for i in 1 : length(structure.factor_assignments)
+
+        fa = structure.factor_assignments[i]
+
+        if target_vehicle_index ∈ fa.vehicle_indeces
+            ϕ = factors[fa.form]
+            extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+            retval += evaluate_dot(ϕ)
+        end
+    end
+    retval
+end

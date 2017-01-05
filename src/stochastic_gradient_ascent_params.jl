@@ -178,13 +178,13 @@ function step!(params::GradientStepParams)
     for (factor_index, ϕ) in enumerate(dset.factors)
         grad_vel_arr = params.grad_velocitities[factor_index]
 
-        print(factor_index, ": ")
+        # print(factor_index, ": ")
         for i in 1 : length(ϕ.weights)
-            @printf("%8.3f  ", grad_vel_arr[i])
             gradient = clamp(grad_vel_arr[i], params.gradient_min, params.gradient_max)
+            # @printf("%8.3f  (%8.3f)  ", grad_vel_arr[i], gradient)
             ϕ.weights[i] = clamp(ϕ.weights[i] + gradient, params.factor_weight_min, params.factor_weight_max)
         end
-        println("")
+        # println("")
     end
 
     dset

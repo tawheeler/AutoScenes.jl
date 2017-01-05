@@ -45,7 +45,9 @@ function get_relative_variable_bounds_s(scene::Scene, structure::SceneStructure,
         Δs_rear = 0.0
     end
 
-    (-Δs_rear, Δs_fore) # NOTE: these are relative to the current s
+    Δs_rear = 1.0 # DEBUG
+    Δs_fore = 1.0 # DEBUG
+    (-Δs_rear, Δs_fore)
 end
 function get_relative_variable_bounds_t(rec::SceneRecord, roadway::Roadway, vehicle_index::Int)
     d_left = convert(Float64, get(MARKERDIST_LEFT, rec, roadway, vehicle_index))
@@ -417,7 +419,7 @@ function calc_pseudolikelihood_gradient_component_s(
         set_s!(veh, state_original, roadway, volume*rand(rng) + Δlo)
         extract!(ϕ, scene, roadway, vehicle_indeces)
         f = evaluate(ϕ.template, target_instance)
-        p_true = exp(evaluate_dot!(structure, factors, scene, roadway, rec))
+        p_true = exp(evaluate_dot!(structure, factors, scene, roadway, rec, vehicle_index))
 
         E_numerator += f*p_true
         E_denominator += p_true
@@ -431,9 +433,6 @@ function calc_pseudolikelihood_gradient_component_s(
     if isnan(E) || isinf(E)
         E = randn()
     end
-
-    # @assert(!isnan(E))
-    # @assert(!isinf(E))
 
     -E
 end
@@ -468,7 +467,7 @@ function calc_pseudolikelihood_gradient_component_t(
         set_t!(veh, state_original, roadway, volume*rand(rng) + Δlo)
         extract!(ϕ, scene, roadway, vehicle_indeces)
         f = evaluate(ϕ.template, target_instance)
-        p_true = exp(evaluate_dot!(structure, factors, scene, roadway, rec))
+        p_true = exp(evaluate_dot!(structure, factors, scene, roadway, rec, vehicle_index))
 
         E_numerator += f*p_true
         E_denominator += p_true
@@ -518,7 +517,7 @@ function calc_pseudolikelihood_gradient_component_v(
         set_v!(veh, state_original, roadway, volume*rand(rng) + Δlo)
         extract!(ϕ, scene, roadway, vehicle_indeces)
         f = evaluate(ϕ.template, target_instance)
-        p_true = exp(evaluate_dot!(structure, factors, scene, roadway, rec))
+        p_true = exp(evaluate_dot!(structure, factors, scene, roadway, rec, vehicle_index)) # TODO: speed this up by only re-evaluating the Markov blanket
 
         E_numerator += f*p_true
         E_denominator += p_true
@@ -569,7 +568,7 @@ function calc_pseudolikelihood_gradient_component_ϕ(
         set_ϕ!(veh, state_original, roadway, volume*rand(rng) + Δlo)
         extract!(ϕ, scene, roadway, vehicle_indeces)
         f = evaluate(ϕ.template, target_instance)
-        p_true = exp(evaluate_dot!(structure, factors, scene, roadway, rec))
+        p_true = exp(evaluate_dot!(structure, factors, scene, roadway, rec, vehicle_index))
 
         E_numerator += f*p_true
         E_denominator += p_true
@@ -580,10 +579,8 @@ function calc_pseudolikelihood_gradient_component_ϕ(
 
     E = E_numerator / E_denominator
 
-    # @assert(!isnan(E))
-    # @assert(!isinf(E))
-
     if isnan(E) || isinf(E)
+        warn("E is $E")
         E = randn()
     end
 

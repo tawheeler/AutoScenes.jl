@@ -98,18 +98,19 @@ export
     metropolis_hastings!,
     sample
 
+pkgdir = joinpath(dirname(@__FILE__), "..")
+include(joinpath(pkgdir, "src", "features.jl"))
+include(joinpath(pkgdir, "src", "factors.jl"))
+include(joinpath(pkgdir, "src", "features", "core.jl"))
+include(joinpath(pkgdir, "src", "scene_structures.jl"))
+include(joinpath(pkgdir, "src", "subscene_extraction.jl"))
+include(joinpath(pkgdir, "src", "structure_dataset.jl"))
+include(joinpath(pkgdir, "src", "scenedataset.jl"))
+include(joinpath(pkgdir, "src", "learning.jl"))
+include(joinpath(pkgdir, "src", "stochastic_gradient_ascent_params.jl"))
+include(joinpath(pkgdir, "src", "sampling.jl"))
+include(joinpath(pkgdir, "src", "io.jl"))
 
-include(Pkg.dir("AutoScenes", "src", "features.jl"))
-include(Pkg.dir("AutoScenes", "src", "factors.jl"))
-include(Pkg.dir("AutoScenes", "src", "features", "core.jl"))
-include(Pkg.dir("AutoScenes", "src", "scene_structures.jl"))
-include(Pkg.dir("AutoScenes", "src", "subscene_extraction.jl"))
-include(Pkg.dir("AutoScenes", "src", "structure_dataset.jl"))
-include(Pkg.dir("AutoScenes", "src", "scenedataset.jl"))
-include(Pkg.dir("AutoScenes", "src", "learning.jl"))
-include(Pkg.dir("AutoScenes", "src", "stochastic_gradient_ascent_params.jl"))
-include(Pkg.dir("AutoScenes", "src", "sampling.jl"))
-
-include(Pkg.dir("AutoScenes", "src", "viz", "viz_scene_structures.jl"))
+include(joinpath(pkgdir, "src", "viz", "viz_scene_structures.jl"))
 
 end # module
