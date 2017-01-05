@@ -1,3 +1,30 @@
+#=
+ϕ: ∈ (-0.82, 0.82)
+    Normal(0.0,  0.82)
+	f = [  ϕ²,   ϕ⁴]
+	w = [-1.0, -8.6]
+
+t: ∈ (-1.7, 1.7)
+    Normal(0.0,  1.7)
+    f = [  t²,   t⁴]
+    w = [-1.0, -8.6]
+
+v: ∈ (-1, 32)
+    Normal(13,  32.0-13.0)
+    f = [   v,   v²,  v³,    v⁴]
+    w = [-1.5, -10, -2.5, -10.0]
+
+Δv: ∈ (-33, 33)
+    Normal(0,  15.0)
+    f = [ Δv², Δv⁴]
+    w = [-9, 4.5]
+
+Δs: ∈ (0, 100)
+    Normal(30,  100.0)
+    f = [ Δs¹,  Δs², Δs³, Δs⁴]
+    w = [  -5, -7.5, 0.5, 2.0]
+=#
+
 const BOUNDS_V = (-1.0, 32.0) # m/s
 const BOUNDS_ϕ = (-0.82, 0.82) # rad
 
@@ -69,25 +96,15 @@ function evaluate(template::GraphFeatureTemplate, instance::GraphFeatureInstance
         d_CPA = template.values[2]
 
         if instance.index == 1
-            if t_CPA == 0.0 && d_CPA == 0.0
-                retval = 1.0
-            end
+            retval = convert(Float64, t_CPA == 0.0 && d_CPA == 0.0)
         elseif instance.index == 2
-            if 0.0 < t_CPA ≤ 1.0 && d_CPA ≤ 0.5
-                retval = 1.0
-            end
+            retval = convert(Float64, 0.0 < t_CPA ≤ 1.0 && d_CPA ≤ 0.5)
         elseif instance.index == 3
-            if 1.0 < t_CPA ≤ 4.0 && d_CPA ≤ 0.5
-                retval = 1.0
-            end
+            retval = convert(Float64, 1.0 < t_CPA ≤ 4.0 && d_CPA ≤ 0.5)
         elseif instance.index == 4
-            if 4.0 < t_CPA ≤ 10.0 && d_CPA ≤ 0.5
-                retval = 1.0
-            end
+            retval = convert(Float64, 4.0 < t_CPA ≤ 10.0 && d_CPA ≤ 0.5)
         elseif instance.index == 5
-            if 10.0 < t_CPA || d_CPA > 0.5
-                retval = 1.0
-            end
+            retval = convert(Float64, 10.0 < t_CPA || d_CPA > 0.5)
         else
             error("instance.index of $(instance.index) not valid!")
         end
@@ -142,11 +159,7 @@ const FEATURE_TEMPLATE_FOLLOW = GraphFeatureTemplate(FeatureForms.FOLLOW,
          Normal( 0.0,  18.0), # Δv
         ]
     )
-const FEATURE_TEMPLATE_NEIGHBOR = GraphFeatureTemplate(FeatureForms.NEIGHBOR,
-        [Normal(0.0, 1.0), # t_CPA
-         Normal(0.0, 1.0), # d_CPA
-        ]
-    )
+const FEATURE_TEMPLATE_NEIGHBOR = GraphFeatureTemplate(FeatureForms.NEIGHBOR, Array(Normal{Float64}, 2))
 
 function create_shared_factors()
 
@@ -155,103 +168,43 @@ function create_shared_factors()
 
     # Road
     road_instances = GraphFeatureInstance[]
-    max_pow = 4
-    for i in 0:max_pow
-        for j in 0:max_pow-i
-            for k in 0:max_pow-i-j
-                if !(i == j == k == 0)
-                    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [i, j, k]))
-                end
-            end
-        end
-    end
-    retval[FeatureForms.ROAD] = SharedFactor(FEATURE_TEMPLATE_ROAD, road_instances)
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [2.0, 0.0, 0.0])) # t
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [4.0, 0.0, 0.0]))
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [0.0, 1.0, 0.0])) # v
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [0.0, 2.0, 0.0]))
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [0.0, 3.0, 0.0]))
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [0.0, 4.0, 0.0]))
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [0.0, 0.0, 2.0])) # ϕ
+    push!(road_instances, GraphFeatureInstance(FeatureForms.ROAD, [0.0, 0.0, 4.0]))
+    retval[FeatureForms.ROAD] = SharedFactor(FEATURE_TEMPLATE_ROAD, road_instances, [-1.0, -8.6,
+                                                                                     -1.5, -10, -2.5, -10.0,
+                                                                                     -1.0, -8.6])
 
     # Follow
     follow_instances = GraphFeatureInstance[]
-    max_pow = 4
-    for i in 0 : max_pow
-        for j in 0 : max_pow-i
-            if !(i == j == 0)
-                push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [i,j]))
-            end
-        end
-    end
-    retval[FeatureForms.FOLLOW] = SharedFactor(FEATURE_TEMPLATE_FOLLOW, follow_instances)
+    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [2.0,0.0])) # Δv
+    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [4.0,0.0]))
+    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [0.0,1.0])) # Δs
+    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [0.0,2.0]))
+    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [0.0,3.0]))
+    push!(follow_instances, GraphFeatureInstance(FeatureForms.FOLLOW, [0.0,4.0]))
+    retval[FeatureForms.FOLLOW] = SharedFactor(FEATURE_TEMPLATE_FOLLOW, follow_instances, [-9, 4.5,
+                                                                                           -5, -7.5, 0.5, 2.0])
 
     # Neighbor
     neighbor_instances = GraphFeatureInstance[]
-    for i in 1 : 5
-        push!(neighbor_instances, GraphFeatureInstance(FeatureForms.NEIGHBOR, i))
-    end
-    retval[FeatureForms.NEIGHBOR] = SharedFactor(FEATURE_TEMPLATE_NEIGHBOR, neighbor_instances)
+    retval[FeatureForms.NEIGHBOR] = SharedFactor(FEATURE_TEMPLATE_NEIGHBOR, neighbor_instances, Float64[])
 
     retval
 end
 
-#=
-iter: 28
-time: 9788612 milliseconds
-learning rate: 0.3811713571735518
-batch_size:    56
-n_samples:
-weights:
-1  [5.89984,-18.9764,-28.9311,-30.0,-21.2736,19.8708,20.0,-25.8472,-30.0,-30.0,-7.55589,4.79533,19.5066,-18.9996,-30.0,20.0,-30.0,-30.0,-30.0]
-2  [-24.958,-15.6688,-5.7417,-30.0,-22.6837,-25.7289,20.0,-14.3953,-23.1918]
-3  [-23.3536,-25.0045,-23.795,20.0,20.0]
+function get_start_scene_and_roadway(ncars::Int)
+    roadway = gen_straight_roadway(1, 100000.0, lane_width=1.7)
 
-iter: 68
-time: 45098135 milliseconds
-learning rate: 0.25499287312478264
-batch_size:    136
-n_samples:
-weights:
-1  [-7.60763,4.92289,19.963,-30.0,-23.4948,0.583121,20.0,1.64827,-30.0,-30.0,5.0555,-3.35636,20.0,20.0,-26.8478,20.0,-20.5293,-30.0,-29.556]
-2  [-22.3228,20.0,-5.54496,-30.0,-30.0,-18.9566,20.0,18.0309,-28.9458]
-3  [-11.3257,-10.8472,-29.0428,-7.00286,20.0]
+    vehicles = Array(Vehicle, ncars)
+    for i in 1 : ncars
+        vehicles[i] = Vehicle(VehicleState(VecSE2(100.0 + (i-1)*46.0,0.0,0.0), roadway, 13.0), VehicleDef(i, AgentClass.CAR, 4.0, 2.0))
+    end
 
-iter: 87
-time: 70130997 milliseconds
-learning rate: 0.21066711107738406
-batch_size:    174
-n_samples:
-weights:
-1  [5.06477,-10.6898,1.41138,-30.0,-23.5192,-0.0243049,20.0,1.13066,-30.0,-30.0,10.7815,-11.902,20.0,18.8176,-30.0,20.0,-26.8264,-30.0,-30.0]
-2  [-10.3414,19.9659,-22.2042,-30.0,-11.6497,-11.8009,20.0,15.7166,-29.3574]
-3  [-29.6686,-5.92442,-20.8276,8.13927,20.0]
-
-iter: 102
-time: 94210659 milliseconds
-learning rate: 0.18118600893024847
-batch_size:    204
-n_samples:
-weights:
-1  [-7.44583,-16.3951,5.16565,-30.0,-17.0643,15.9508,20.0,-2.00284,-30.0,-30.0,17.1201,-5.07435,20.0,20.0,-27.1647,20.0,-15.887,-30.0,-30.0]
-2  [1.5447,20.0,-22.0025,-30.0,-15.9631,-17.2449,20.0,19.832,-29.9064]
-3  [-21.9485,-21.1018,-13.5304,20.0,20.0]
-
-
-iter: 66
-time: 33153198 milliseconds
-plogl: 0.0
-learning rate: 0.2601702613251532
-batch_size:    132
-n_samples:
-weights:
-1  [9.89248,10.4985,-25.6653,-30.0,9.26662,-16.439,20.0,-28.2553,-30.0,-30.0,-30.0,-16.2885,20.0,17.7262,-30.0,20.0,-26.5277,-30.0,-30.0]
-2  [19.0259,20.0,-14.1432,-30.0,-30.0,-14.9462,20.0,-25.3156,-27.9397]
-3  [20.0,-29.1932,-5.05623,20.0,20.0]
-
-iter: 96
-time: 64233501 milliseconds
-plogl: 0.0
-learning rate: 0.19244803944674235
-batch_size:    192
-n_samples:
-weights:
-1  [7.1126,11.6389,-7.79089,-30.0,-21.6173,-16.7177,20.0,-30.0,-30.0,-30.0,-5.4573,4.67055,19.9378,0.304955,-30.0,20.0,10.7591,-30.0,-29.3216]
-2  [20.0,19.3713,-10.6103,-30.0,-24.7867,-13.8049,20.0,-18.2035,-29.8087]
-3  [11.7443,-1.71497,-4.35869,-4.04628,20.0]
-
-scp wheelert@tula.stanford.edu:/scratch/wheelert/papers/2016_adas_validation_code/data/core_factors.txt core_factors_tula.txt
-=#
+    (Scene(vehicles), roadway)
+end

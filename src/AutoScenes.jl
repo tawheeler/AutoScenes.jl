@@ -26,6 +26,9 @@ export
     evaluate_exp,
     create_shared_factors,
 
+    save_factors,
+    load_factors,
+
     #####################################
     # scene_structures
     LeadFollowRelationships,
@@ -34,6 +37,7 @@ export
 
     gen_scene_structure,
     evaluate_dot!,
+    get_vehicle_indeces,
 
     #####################################
     # subscene_extraction
@@ -47,6 +51,7 @@ export
     #####################################
     # structure_dataset
     SceneStructureDataset,
+    SceneSource,
 
     get_scene_structure_and_roadway!,
     pull_scene_dataset,
@@ -62,6 +67,7 @@ export
     # learning
     PseudolikelihoodPrealloc,
 
+    reset_weights!,
     calc_pseudolikelihood,
     calc_pseudolikelihood_gradient,
 
@@ -86,6 +92,7 @@ export
     alloc_grad_velocities,
     stochastic_gradient_ascent!,
     step!,
+    parallel_step!,
 
     #####################################
     # sampling

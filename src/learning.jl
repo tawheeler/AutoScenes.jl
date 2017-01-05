@@ -617,6 +617,17 @@ function next_index!(sampler::BatchSampler)
     sampler.perm[sampler.perm_index]
 end
 
+immutable SceneStructureRoadway
+    scene::Scene
+    structure::SceneStructure
+    roadway::Roadway
+end
+function next!(sampler::BatchSampler)
+    index = next_index!(sampler)
+    scene, structure, roadway = get_scene_structure_and_roadway!(Scene(), sampler.dset, index)
+    SceneStructureRoadway(scene, structure, roadway)
+end
+
 #####################
 
 function calc_pseudolikelihood_gradient(
@@ -632,15 +643,14 @@ function calc_pseudolikelihood_gradient(
     factors::Vector{SharedFactor} = sampler.dset.factors,
     )
 
-    dset = sampler.dset
     retval = 0.0
-    ϕ = dset.factors[form]
+    ϕ = factors[form]
     target_instance = ϕ.instances[feature_index]
 
     for m in 1 : batch_size
 
         structure_index = next_index!(sampler) # sample uniformly at random
-        scene, structure, roadway = get_scene_structure_and_roadway!(scene, dset, structure_index)
+        scene, structure, roadway = get_scene_structure_and_roadway!(scene, sampler.dset, structure_index)
 
         for fa in structure.factor_assignments
             if fa.form == form # is the correct factor
@@ -656,22 +666,22 @@ function calc_pseudolikelihood_gradient(
 
                         if uses_s(target_instance)
                             retval += eval
-                            retval += calc_pseudolikelihood_gradient_component_s(ϕ, dset.factors, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
+                            retval += calc_pseudolikelihood_gradient_component_s(ϕ, factors, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
                                                                                  target_instance,n_samples_monte_carlo_integration, rng, rec)
                         end
                         if uses_t(target_instance)
                             retval += eval
-                            retval += calc_pseudolikelihood_gradient_component_t(ϕ, dset.factors, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
+                            retval += calc_pseudolikelihood_gradient_component_t(ϕ, factors, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
                                                                                  target_instance,n_samples_monte_carlo_integration, rng, rec)
                         end
                         if uses_v(target_instance)
                             retval += eval
-                            retval += calc_pseudolikelihood_gradient_component_v(ϕ, dset.factors, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
+                            retval += calc_pseudolikelihood_gradient_component_v(ϕ, factors, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
                                                                                  target_instance,n_samples_monte_carlo_integration, rng, rec)
                         end
                         if uses_ϕ(target_instance)
                             retval += eval
-                            retval += calc_pseudolikelihood_gradient_component_ϕ(ϕ, dset.factors, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
+                            retval += calc_pseudolikelihood_gradient_component_ϕ(ϕ, factors, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
                                                                                  target_instance,n_samples_monte_carlo_integration, rng, rec)
                         end
                     end
@@ -686,4 +696,78 @@ function calc_pseudolikelihood_gradient(
     retval -= 2*regularization*ϕ.weights[feature_index]
 
     retval
+end
+function calc_pseudolikelihood_gradient(
+    form::Int,
+    feature_index::Int,
+    factors::Vector{SharedFactor},
+    samples::Vector{SceneStructureRoadway}, # of length batch_size
+    n_samples_monte_carlo_integration::Int,
+    regularization::Float64,
+    rng::AbstractRNG=Base.GLOBAL_RNG,
+    scene::Scene = Scene(),
+    rec::SceneRecord = SceneRecord(2, 0.1),
+    )
+
+    retval = 0.0
+    ϕ = factors[form]
+    target_instance = ϕ.instances[feature_index]
+
+    for ssr in samples
+
+        scene, structure, roadway = ssr.scene, ssr.structure, ssr.roadway
+
+        for fa in structure.factor_assignments
+            if fa.form == form # is the correct factor
+
+                # first component
+                extract!(ϕ, scene, roadway, fa.vehicle_indeces)
+                eval = evaluate(ϕ.template, target_instance)
+
+                for vehicle_index in fa.vehicle_indeces
+
+                    # only calc if the vehicle is active
+                    if vehicle_index in structure.active_vehicles
+
+                        if uses_s(target_instance)
+                            retval += eval
+                            retval += calc_pseudolikelihood_gradient_component_s(ϕ, factors, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
+                                                                                 target_instance,n_samples_monte_carlo_integration, rng, rec)
+                        end
+                        if uses_t(target_instance)
+                            retval += eval
+                            retval += calc_pseudolikelihood_gradient_component_t(ϕ, factors, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
+                                                                                 target_instance,n_samples_monte_carlo_integration, rng, rec)
+                        end
+                        if uses_v(target_instance)
+                            retval += eval
+                            retval += calc_pseudolikelihood_gradient_component_v(ϕ, factors, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
+                                                                                 target_instance,n_samples_monte_carlo_integration, rng, rec)
+                        end
+                        if uses_ϕ(target_instance)
+                            retval += eval
+                            retval += calc_pseudolikelihood_gradient_component_ϕ(ϕ, factors, scene, structure, roadway, vehicle_index, fa.vehicle_indeces,
+                                                                                 target_instance,n_samples_monte_carlo_integration, rng, rec)
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    retval /= length(samples)
+
+    # add regularization
+    retval -= 2*regularization*ϕ.weights[feature_index]
+
+    retval
+end
+
+#####################
+
+function reset_weights!(factors::Vector{SharedFactor}, σ::Float64=1.0)
+    for ϕ in factors
+        copy!(ϕ.weights, σ*randn(Float64, length(ϕ.weights)))
+    end
+    factors
 end

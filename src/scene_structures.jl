@@ -14,6 +14,21 @@ type SceneStructure # a Factor Graph
     lead_follow::LeadFollowRelationships
 end
 
+function get_vehicle_indeces(structure::SceneStructure)
+    vehicle_indeces = deepcopy(structure.active_vehicles)
+    for i in structure.lead_follow.index_fore
+        if i != 0
+            push!(vehicle_indeces, i)
+        end
+    end
+    for i in structure.lead_follow.index_rear
+        if i != 0
+            push!(vehicle_indeces, i)
+        end
+    end
+    sort!(collect(vehicle_indeces))
+end
+
 _ordered_tup_pair(a::Int, b::Int) = a < b ? (a,b) : (b,a)
 function _try_to_add_factor(vindA::Int, vindB::Int, form, factor_assignments, pair_factors_added)
     if vindA != 0 && vindB != 0

@@ -22,15 +22,23 @@ end
 
 function Base.append!(target::SceneStructureDataset, donor::SceneStructureDataset)
 
-    # This assumes the factors are identical
+    # NOTE: this assumes the factors are identical
 
-    Δtdind = length(target.trajdatas)
-    append!(target.trajdatas, donor.trajdatas)
+    # only
+    trajdata_indeces = Array(Int, length(donor.trajdatas))
+    for (i, td) in enumerate(donor.trajdatas)
+        j = findfirst(td_target->td_target === td, target.trajdatas)
+        if j == 0
+            push!(target.trajdatas, td)
+            j = length(target.trajdatas)
+        end
+        trajdata_indeces[i] = j
+    end
 
     sources = deepcopy(donor.sources)
     for i in 1 : length(sources)
         source = sources[i]
-        sources[i] = SceneSource(source.trajdata_index + Δtdind, source.frame)
+        sources[i] = SceneSource(trajdata_indeces[source.trajdata_index], source.frame)
     end
     append!(target.sources, sources)
 
