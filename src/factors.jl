@@ -18,6 +18,10 @@ function LeadFollowRelationships(scene::Scene, roadway::Roadway, vehicle_indices
 
     return LeadFollowRelationships(index_fore, index_rear)
 end
+function Base.:(==)(A::LeadFollowRelationships, B::LeadFollowRelationships)
+    return A.index_fore == B.index_fore &&
+           A.index_rear == B.index_rear
+end
 
 function get_active_vehicles(lead_follow::LeadFollowRelationships)
     active_vehicles = Set{Int}()
@@ -42,19 +46,21 @@ A log-linear factor has the specific form ϕ(x) → exp(θᵀ⋅fs(x)),
 where fs(x) is a list of scalar features (or one vector feature function)
 """
 immutable LogLinearSharedFactor{F <: Function}
-    extract::F # (v, scene, roadway, vehicle_indices::NTuple{Int}) -> nothing; extracts internal values and deposites them in v
+    extract::F # (v, scene, roadway, vehicle_indices::Tuple{Vararg{Int}}) -> nothing; extracts internal values and deposites them in v
     v::Vector{Float64} # values
     θ::Vector{Float64} # weights
 end
+LogLinearSharedFactor{F<:Function}(extract::F, θ::Vector{Float64}) = LogLinearSharedFactor{F}(extract, similar(θ), θ)
+
 function AutomotiveDrivingModels.extract!(
     ϕ::LogLinearSharedFactor,
     scene::Scene,
     roadway::Roadway,
-    vehicle_indices::NTuple{Int},
+    vehicle_indices::Tuple{Vararg{Int}},
     )
 
     ϕ.extract(ϕ.v, scene, roadway, vehicle_indices)
-    return nothing
+    return ϕ
 end
 Base.dot(ϕ::LogLinearSharedFactor) = dot(ϕ.v, ϕ.θ)
 Base.exp(ϕ::LogLinearSharedFactor) = exp(dot(ϕ))
@@ -68,7 +74,16 @@ uses_ϕ{F}(ϕ::LogLinearSharedFactor{F}) = error("uses_ϕ not implemented for Lo
     For a given scene and roadway, return all of the vehicle_indices::NTuple{Int} that are valid for this factor
 These values are returned as a Vector{Tuple{Vararg{Int}}}
 """
-build_structure{F}(ϕ::LogLinearSharedFactor{F}, scene::Scene, roadway::Roadway, active_vehicles::Set{Int}, lead_follow::LeadFollowRelationships) = error("build_structure not implemented for LogLinearSharedFactor{F}")
+function assign_factors{F<:Function}(
+    ϕ::LogLinearSharedFactor{F},
+    scene::Scene,
+    roadway::Roadway,
+    active_vehicles::Set{Int},
+    lead_follow::LeadFollowRelationships,
+    )
+
+    error("assign_factors not implemented for LogLinearSharedFactor{$F}")
+end
 
 type SceneStructure{Factors <: Tuple{Vararg{LogLinearSharedFactor}}} # a Factor Graph
                         # NOTE: hash is based on object pointer, which is what we want
@@ -77,7 +92,7 @@ type SceneStructure{Factors <: Tuple{Vararg{LogLinearSharedFactor}}} # a Factor 
     factor_assignments::Dict{LogLinearSharedFactor, Vector{Tuple{Vararg{Int}}}}
 end
 
-function gen_scene_structure{Factors <: Tuple{Vararg{LogLinearSharedFactor}}}(
+function SceneStructure{Factors <: Tuple{Vararg{LogLinearSharedFactor}}}(
     scene::Scene,
     roadway::Roadway,
     factors::Factors,
@@ -87,83 +102,20 @@ function gen_scene_structure{Factors <: Tuple{Vararg{LogLinearSharedFactor}}}(
     lead_follow = LeadFollowRelationships(scene, roadway, vehicle_indices)
     active_vehicles = get_active_vehicles(lead_follow)
 
-    factor_assignments = Dict{LogLinearSharedFactor, Vector{Tuple{Vararg{Int}}}}
+    factor_assignments = Dict{LogLinearSharedFactor, Vector{Tuple{Vararg{Int}}}}()
     for ϕ in factors
-        factor_assignments[ϕ] = build_structure(ϕ, scene, roadway, active_vehicles, lead_follow)
+        factor_assignments[ϕ] = assign_factors(ϕ, scene, roadway, active_vehicles, lead_follow)
     end
 
-    SceneStructure(factor_assignments, active_vehicles, lead_follow)
+    SceneStructure{Factors}(lead_follow, active_vehicles, factor_assignments)
 end
 
 
 #### BASIC
 
-function standardize(x::Real, μ::Real, σ::Real)
-    @assert σ > 0
-    return (x-μ)/σ
-end
+# function standardize(x::Real, μ::Real, σ::Real)
+#     @assert σ > 0
+#     return (x-μ)/σ
+# end
 
-function extract_basic_road_feature!(
-    v::Vector{Float64},
-    scene::Scene,
-    roadway::Roadway,
-    vehicle_indices::NTuple{Int},
-    )
 
-    vehicle_index = vehicle_indices[1]
-    v[1] = scene[vehicle_index].state.v
-    nothing
-end
-uses_s(ϕ::LogLinearSharedFactor{extract_basic_road_feature!}) = false
-uses_t(ϕ::LogLinearSharedFactor{extract_basic_road_feature!}) = false
-uses_v(ϕ::LogLinearSharedFactor{extract_basic_road_feature!}) = true
-uses_ϕ(ϕ::LogLinearSharedFactor{extract_basic_road_feature!}) = false
-function build_structure(
-    ϕ::LogLinearSharedFactor{extract_basic_road_feature!},
-    scene::Scene,
-    roadway::Roadway,
-    active_vehicles::Set{Int},
-    lead_follow::LeadFollowRelationships,
-    )
-
-    retval = Array(Tuple{Vararg{Int}}, length(active_vehicles))
-    for (i,vehicle_index) in enumerate(active_vehicles)
-        retval[i] = (vehicle_index,)
-    end
-    return retval
-end
-
-function extract_basic_follow_feature!(
-    v::Vector{Float64},
-    scene::Scene,
-    roadway::Roadway,
-    vehicle_indices::NTuple{Int},
-    )
-
-    v[1] = veh_fore.state.v - veh_rear.state.v
-    nothing
-end
-uses_s(ϕ::LogLinearSharedFactor{extract_basic_follow_feature!}) = false
-uses_t(ϕ::LogLinearSharedFactor{extract_basic_follow_feature!}) = false
-uses_v(ϕ::LogLinearSharedFactor{extract_basic_follow_feature!}) = true
-uses_ϕ(ϕ::LogLinearSharedFactor{extract_basic_follow_feature!}) = false
-function build_structure(
-    ϕ::LogLinearSharedFactor{extract_basic_follow_feature!},
-    scene::Scene,
-    roadway::Roadway,
-    active_vehicles::Set{Int},
-    lead_follow::LeadFollowRelationships,
-    )
-
-    retval = Tuple{Vararg{Int}}[]
-
-    for (vehicle_index, index_fore) in enumerate(lead_follow.index_fore)
-        if index_fore != 0 && (vehicle_index ∈ active_vehicles || index_fore ∈ active_vehicles)
-
-            @assert index_fore != vehicle_index
-            push!(retval, (vehicle_index, index_fore))
-        end
-    end
-
-    return retval
-end
