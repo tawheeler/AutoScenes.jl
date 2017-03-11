@@ -111,11 +111,3 @@ function SceneStructure{Factors <: Tuple{Vararg{LogLinearSharedFactor}}}(
 end
 
 
-#### BASIC
-
-# function standardize(x::Real, μ::Real, σ::Real)
-#     @assert σ > 0
-#     return (x-μ)/σ
-# end
-
-

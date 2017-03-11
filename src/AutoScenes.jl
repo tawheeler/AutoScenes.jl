@@ -25,7 +25,7 @@ export
     SceneStructure,
 
     get_active_vehicles,
-    gen_scene_structure
+    gen_scene_structure,
     # evaluate_dot!,
 
     # #####################################
@@ -56,8 +56,10 @@ export
     # # learning
     # PseudolikelihoodPrealloc,
 
+    VehicleBounds,
+
     # reset_weights!,
-    # calc_pseudolikelihood,
+    calc_pseudolikelihood
     # calc_pseudolikelihood_gradient,
 
     # #####################################
@@ -94,14 +96,12 @@ export
     # metropolis_hastings!,
     # sample
 
-# include("features.jl") # NOT NEEDED
 include("factors.jl")
-# include("features/core.jl")
 # include("scene_structures.jl")
 # include("subscene_extraction.jl")
 # include("structure_dataset.jl")
 # include("scenedataset.jl")
-# include("learning.jl")
+include("learning.jl")
 # include("stochastic_gradient_ascent_params.jl")
 # include("sampling.jl")
 # include("io.jl")

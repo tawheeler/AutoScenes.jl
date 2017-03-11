@@ -143,6 +143,16 @@ extract!(ϕ_follow, scene, roadway, (1,2)); @test isapprox(ϕ_follow.v[1], 2.0 -
 @test isapprox(dot(ϕ_follow), (2.0-1.0)*0.5)
 @test isapprox(exp(ϕ_follow), exp((2.0-1.0)*0.5))
 
+vehicle_index = 1
+Δlo_s, Δhi_s = AutoScenes.get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
+Δlo_t, Δhi_t = AutoScenes.get_relative_variable_bounds_t(scene, roadway, vehicle_index)
+Δlo_v, Δhi_v = -5.0, 5.0
+Δlo_ϕ, Δhi_ϕ = -3.0, 3.0
+
+bounds = VehicleBounds(Δlo_s, Δhi_s, Δlo_t, Δhi_t, Δlo_v, Δhi_v, Δlo_ϕ, Δhi_ϕ)
+
+println(calc_pseudolikelihood(scene, structure, roadway, vehicle_index, bounds))
+
 # structure = SceneStructure([
 #     FactorAssignment(FeatureForms.ROAD, [1]),
 #     FactorAssignment(FeatureForms.ROAD, [2]),
@@ -169,30 +179,6 @@ extract!(ϕ_follow, scene, roadway, (1,2)); @test isapprox(ϕ_follow.v[1], 2.0 -
 #     [structure],
 #     create_shared_factors(),
 # )
-
-# ϕ_road = dset.factors[1] # shared factor
-# vehicle_indeces = [1]
-# extract!(ϕ_road, scene, roadway, vehicle_indeces)
-# @test ϕ_road.template.values == [1.0]
-# @test evaluate(ϕ_road.template, ϕ_road.instances[1]) == 1.0
-# @test evaluate(ϕ_road.template, ϕ_road.instances[2]) == 1.0^2
-# @test evaluate_dot(ϕ_road) == 1.1
-
-# vehicle_indeces = [2]
-# extract!(ϕ_road, scene, roadway, vehicle_indeces)
-# @test ϕ_road.template.values == [2.0]
-# @test evaluate(ϕ_road.template, ϕ_road.instances[1]) == 2.0
-# @test evaluate(ϕ_road.template, ϕ_road.instances[2]) == 2.0^2
-# @test evaluate_dot(ϕ_road) == 2.4
-
-# ϕ_follow = dset.factors[2] # shared factor
-# vehicle_indeces = [1,2]
-# extract!(ϕ_follow, scene, roadway, vehicle_indeces)
-# @test ϕ_follow.template.values == [1.0]
-# @test evaluate(ϕ_follow.template, ϕ_follow.instances[1]) == 1.0
-# @test evaluate_dot(ϕ_follow) == 1.0
-
-# @test evaluate_dot!(structure, dset.factors, scene, roadway, SceneRecord(1,0.1)) == 4.5
 
 # plog = calc_pseudolikelihood(dset, dat = PseudolikelihoodPrealloc(100000))
 # @test isapprox(plog, 0.1184, atol=0.001)
