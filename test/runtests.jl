@@ -130,7 +130,8 @@ factor_assignments_follow = assign_factors(ϕ_follow, scene, roadway, get_active
 @test (2,3) ∈ factor_assignments_follow
 @test (4,1) ∈ factor_assignments_follow
 
-structure = SceneStructure(scene, roadway, (ϕ_road,ϕ_follow))
+factors = (ϕ_road,ϕ_follow)
+structure = SceneStructure(scene, roadway, factors)
 @test structure.lead_follow == lead_follow
 @test 1 ∈ structure.active_vehicles
 @test 2 ∈ structure.active_vehicles
@@ -151,7 +152,7 @@ vehicle_index = 1
 
 bounds = VehicleBounds(Δlo_s, Δhi_s, Δlo_t, Δhi_t, Δlo_v, Δhi_v, Δlo_ϕ, Δhi_ϕ)
 
-println(calc_pseudolikelihood(scene, structure, roadway, vehicle_index, bounds))
+calc_pseudolikelihood_gradient(ϕ_road, scene, structure, roadway)
 
 # structure = SceneStructure([
 #     FactorAssignment(FeatureForms.ROAD, [1]),

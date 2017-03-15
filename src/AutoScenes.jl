@@ -59,8 +59,8 @@ export
     VehicleBounds,
 
     # reset_weights!,
-    calc_pseudolikelihood
-    # calc_pseudolikelihood_gradient,
+    # calc_pseudolikelihood
+    calc_pseudolikelihood_gradient
 
     # #####################################
     # # Batch Sampler

@@ -77,10 +77,10 @@ end
 #     veh.state = VehicleState(new_frenet, roadway, state_original.v)
 #     veh
 # end
-# function set_v!(veh::Vehicle, state_original::VehicleState, roadway::Roadway, value_delta::Float64)
-#     veh.state = VehicleState(state_original.posG, state_original.posF, state_original.v+value_delta)
-#     veh
-# end
+function set_v!(veh::Vehicle, state_original::VehicleState, roadway::Roadway, value_delta::Float64)
+    veh.state = VehicleState(state_original.posG, state_original.posF, state_original.v+value_delta)
+    veh
+end
 # function set_ϕ!(veh::Vehicle, state_original::VehicleState, roadway::Roadway, value_delta::Float64)
 #     g = state_original.posG
 #     new_posG = VecSE2(g.x, g.y, g.θ + value_delta)
@@ -515,6 +515,107 @@ domain_size_ϕ(bounds::VehicleBounds) = bounds.Δhi_ϕ - bounds.Δlo_ϕ
 
 #     -E
 # end
+
+function pdf_tilde(factors, # TODO: type
+    scene::Scene,
+    structure::SceneStructure,
+    roadway::Roadway,
+    )
+
+    retval = 0.0
+    for (ϕ, assignments) in structure.factor_assignments
+        for assignment in assignments
+            extract!(ϕ, scene, roadway, assignment)
+            retval += dot(ϕ)
+        end
+    end
+
+    return exp(retval)
+end
+function pdf_tilde_only_for_vehicle(factors, # TODO: type
+    scene::Scene,
+    structure::SceneStructure,
+    roadway::Roadway,
+    vehicle_index::Int,
+    )
+
+    retval = 0.0
+    for (ϕ, assignments) in structure.factor_assignments
+        for assignment in assignments
+            if vehicle_index ∈ assignment
+                extract!(ϕ, scene, roadway, assignment)
+                retval += dot(ϕ)
+            end
+        end
+    end
+
+    return exp(retval)
+end
+
+function estimate_expectation_of_f_over_speed(
+    ϕ::LogLinearSharedFactor,
+    scene::Scene,
+    structure::SceneStructure,
+    roadway::Roadway,
+    assignment::Tuple{Vararg{Int}},
+    ego_index_in_assignment::Int,
+    bounds::VehicleBounds,
+    nsamples::Int,
+    )
+
+    # TODO: move allocation out
+    numerator = zeros(Float64, length(ϕ.θ))
+    denominator = zeros(Float64, length(ϕ.θ))
+
+    # proposal distribution
+    U = Uniform(bounds.Δlo_v, bounds.Δhi_v)
+
+    veh_index = assignment[ego_index_in_assignment]
+    veh = scene[veh_index]
+    initial_state = veh.state
+    for r in 1 : nsamples
+        Δv = rand(U)
+        set_v!(veh, initial_state, roadway, Δv)
+        extract!(ϕ, scene, roadway, assignment)
+
+        # technically, only need to recompute the ones that depend on this vehicle and its speed
+        W = pdf_tilde_only_for_vehicle(factors, scene, structure, roadway)
+
+        numerator += ϕ.v .* W
+        denominator += W
+    end
+    veh.state = initial_state
+
+    return E
+end
+
+function calc_pseudolikelihood_gradient(ϕ::Factor, scene::Scene, structure::SceneStructure, roadway::Roadway)
+
+    # TODO: move allocation out
+    ∇ = zeros(Float64, length(ϕ.θ))
+
+    for assignment in structure.factor_assignments[ϕ]
+
+        extract!(ϕ, scene, roadway, assignment)
+
+        ∇ += (uses_v(ϕ) + uses_s(ϕ) + uses_t(ϕ) + uses_ϕ(ϕ))*ϕ.v
+
+        if uses_v(ϕ)
+            #=
+            Subtract expectation term
+                Compute it using importance sampling w/ a uniform distribution
+            =#
+            ∇ -= estimate_expectation_of_f_over_speed(ϕ, scene, structure, roadway, assignment, ...)
+        end
+
+        # if uses_s
+        # if uses_t
+        # if uses_ϕ
+    end
+
+    return ∇
+end
+
 # function calc_pseudolikelihood_gradient_component_t(
 #     ϕ::SharedFactor,
 #     factors::Vector{SharedFactor},
