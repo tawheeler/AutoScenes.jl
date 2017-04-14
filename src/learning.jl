@@ -26,41 +26,6 @@
 #     abs(posG - posF) < 0.15
 # end
 
-function get_relative_variable_bounds_s(scene::Scene, structure::SceneStructure, roadway::Roadway, vehicle_index::Int)
-    veh_rear = scene[vehicle_index]
-    veh_fore = scene[structure.lead_follow.index_fore[vehicle_index]]
-    relpos = get_frenet_relative_position(veh_fore, veh_rear, roadway)
-    Δs_fore = relpos.Δs - veh_rear.def.length/2 -  veh_fore.def.length/2
-    # @assert !isnan(Δs_fore)
-    if isnan(Δs_fore)
-        Δs_fore = 0.0
-    end
-
-    veh_rear = scene[structure.lead_follow.index_rear[vehicle_index]]
-    veh_fore = scene[vehicle_index]
-    relpos = get_frenet_relative_position(veh_fore, veh_rear, roadway)
-    Δs_rear = relpos.Δs - veh_rear.def.length/2 -  veh_fore.def.length/2
-    # @assert !isnan(Δs_rear)
-    if isnan(Δs_rear)
-        Δs_rear = 0.0
-    end
-
-    (-Δs_rear, Δs_fore)
-end
-function get_relative_variable_bounds_t(scene::Scene, roadway::Roadway, vehicle_index::Int)
-    d_left = get_markerdist_left(scene[vehicle_index], roadway)
-    d_right = get_markerdist_right(scene[vehicle_index], roadway)
-    (-d_right, d_left)  # NOTE: these are relative to the current t
-end
-function get_relative_variable_bounds_v(scene::Scene, vehicle_index::Int)
-    v = scene[vehicle_index].state.v
-    (BOUNDS_V[1]-v, BOUNDS_V[2]-v) # [m/s]
-end
-function get_relative_variable_bounds_ϕ(scene::Scene, vehicle_index::Int)
-    ϕ = scene[vehicle_index].state.posF.ϕ
-    (BOUNDS_ϕ[1]-ϕ, BOUNDS_ϕ[2]-ϕ) # [rad]
-end
-
 # get_s(veh::Vehicle) = veh.state.posF.s
 # get_t(veh::Vehicle) = veh.state.posF.t
 # get_v(veh::Vehicle) = veh.state.v

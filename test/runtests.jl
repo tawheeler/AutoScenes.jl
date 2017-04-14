@@ -3,29 +3,29 @@ using AutomotiveDrivingModels
 using AutoScenes
 
 def = VehicleDef(AgentClass.CAR, 4.0, 2.0)
-roadway = gen_straight_roadway(1)
-scene = Scene([
-    Vehicle(VehicleState(VecSE2(100.0,0.0,0.0), roadway, 1.0), def, 1),
-    Vehicle(VehicleState(VecSE2(108.0,0.0,0.0), roadway, 2.0), def, 2),
-    Vehicle(VehicleState(VecSE2(116.0,0.0,0.0), roadway, 0.0), def, 3),
-    Vehicle(VehicleState(VecSE2( 92.0,0.0,0.0), roadway, 0.0), def, 4),
+roadway = StraightRoadway(200.0)
+scene = MobiusScene([
+    MobiusVehicle(State1D(10.0,10.0), def, 1),
+    MobiusVehicle(State1D(18.0,12.0), def, 2),
+    MobiusVehicle(State1D(26.0,10.0), def, 3),
+    MobiusVehicle(State1D(34.0, 8.0), def, 4),
 ])
 
 lead_follow = LeadFollowRelationships(scene, roadway)
-@test lead_follow.index_fore == [2,3,0,1]
-@test lead_follow.index_rear == [4,1,2,0]
+@test lead_follow.index_fore == [2,3,4,1]
+@test lead_follow.index_rear == [4,1,2,3]
 
 active = get_active_vehicles(lead_follow)
 @test 1 ∈ active
 @test 2 ∈ active
-@test 3 ∉ active
-@test 4 ∉ active
+@test 3 ∈ active
+@test 4 ∈ active
 
 #####
 
-function speed(
-    scene::Scene,
-    roadway::Roadway,
+function speed{R}(
+    scene::Union{Scene, MobiusScene},
+    roadway::R,
     vehicle_indices::Tuple{Int},
     )
 
@@ -36,10 +36,10 @@ AutoScenes.uses_s{F<:typeof(speed)}(f::F) = false
 AutoScenes.uses_t{F<:typeof(speed)}(f::F) = false
 AutoScenes.uses_v{F<:typeof(speed)}(f::F) = true
 AutoScenes.uses_ϕ{F<:typeof(speed)}(f::F) = false
-function AutoScenes.assign_feature{F <: typeof(speed)}(
+function AutoScenes.assign_feature{F <: typeof(speed), R}(
     f::F,
-    scene::Scene,
-    roadway::Roadway,
+    scene::Union{Scene, MobiusScene},
+    roadway::R,
     active_vehicles::Set{Int},
     lead_follow::LeadFollowRelationships,
     )
@@ -58,26 +58,28 @@ f₁ = speed
 @test !uses_ϕ(f₁)
 
 assignments₁ = assign_feature(f₁, scene, roadway, get_active_vehicles(lead_follow), lead_follow)
-@test length(assignments₁) == 2
+@test length(assignments₁) == 4
 @test (1,) ∈ assignments₁
 @test (2,) ∈ assignments₁
+@test (3,) ∈ assignments₁
+@test (4,) ∈ assignments₁
 
 structure = SceneStructure(scene, roadway, (f₁,))
 @test structure.lead_follow == lead_follow
 @test 1 ∈ structure.active_vehicles
 @test 2 ∈ structure.active_vehicles
-@test 3 ∉ structure.active_vehicles
-@test 4 ∉ structure.active_vehicles
+@test 3 ∈ structure.active_vehicles
+@test 4 ∈ structure.active_vehicles
 @test structure.assignments[f₁] == assignments₁
 
-@test isapprox(f₁(scene, roadway, (1,)), 1.0)
-@test isapprox(f₁(scene, roadway, (2,)), 2.0)
+@test isapprox(f₁(scene, roadway, (1,)), 10.0)
+@test isapprox(f₁(scene, roadway, (2,)), 12.0)
 
 ###
 
-function delta_speed(
-    scene::Scene,
-    roadway::Roadway,
+function delta_speed{R}(
+    scene::Union{Scene, MobiusScene},
+    roadway::R,
     vehicle_indices::Tuple{Int, Int},
     )
 
@@ -90,10 +92,10 @@ AutoScenes.uses_s{F<:typeof(delta_speed)}(ϕ::F) = false
 AutoScenes.uses_t{F<:typeof(delta_speed)}(ϕ::F) = false
 AutoScenes.uses_v{F<:typeof(delta_speed)}(ϕ::F) = true
 AutoScenes.uses_ϕ{F<:typeof(delta_speed)}(ϕ::F) = false
-function AutoScenes.assign_feature{F <: typeof(delta_speed)}(
+function AutoScenes.assign_feature{F <: typeof(delta_speed), R}(
     f::F,
-    scene::Scene,
-    roadway::Roadway,
+    scene::Union{Scene, MobiusScene},
+    roadway::R,
     active_vehicles::Set{Int},
     lead_follow::LeadFollowRelationships,
     )
@@ -118,9 +120,10 @@ f₂ = delta_speed
 @test !uses_ϕ(f₂)
 
 assignments₂ = assign_feature(f₂, scene, roadway, get_active_vehicles(lead_follow), lead_follow)
-@test length(assignments₂) == 3
+@test length(assignments₂) == 4
 @test (1,2) ∈ assignments₂
 @test (2,3) ∈ assignments₂
+@test (3,4) ∈ assignments₂
 @test (4,1) ∈ assignments₂
 
 shared_features = (f₁,f₂)
@@ -128,22 +131,17 @@ structure = SceneStructure(scene, roadway, shared_features)
 @test structure.lead_follow == lead_follow
 @test 1 ∈ structure.active_vehicles
 @test 2 ∈ structure.active_vehicles
-@test 3 ∉ structure.active_vehicles
-@test 4 ∉ structure.active_vehicles
+@test 3 ∈ structure.active_vehicles
+@test 4 ∈ structure.active_vehicles
 @test structure.assignments[f₁] == assignments₁
 @test structure.assignments[f₂] == assignments₂
 
-@test isapprox(f₂(scene, roadway, (1,2)), 2.0 - 1.0)
+@test isapprox(f₂(scene, roadway, (1,2)), 12.0 - 10.0)
 
 #####
 
 vehicle_index = 1
-Δlo_s, Δhi_s = AutoScenes.get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
-Δlo_t, Δhi_t = AutoScenes.get_relative_variable_bounds_t(scene, roadway, vehicle_index)
-Δlo_v, Δhi_v = -5.0, 5.0
-Δlo_ϕ, Δhi_ϕ = -3.0, 3.0
-
-bounds = VehicleBounds(Δlo_s, Δhi_s, Δlo_t, Δhi_t, Δlo_v, Δhi_v, Δlo_ϕ, Δhi_ϕ)
+bounds = VehicleBounds(scene, roadway, structure.lead_follow, vehicle_index)
 
 
 

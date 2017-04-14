@@ -8,6 +8,18 @@ using AutoViz
 export
 
     #####################################
+    LeadFollowRelationships,
+    StateBounds,
+    VehicleBounds,
+
+    get_active_vehicles,
+    domain_size,
+    get_state_bounds_s,
+    get_state_bounds_r,
+    get_state_bounds_v,
+    get_state_bounds_ϕ,
+
+    #####################################
     uses_s,
     uses_t,
     uses_v,
@@ -15,10 +27,8 @@ export
     assign_feature,
 
     #####################################
-    LeadFollowRelationships,
-    SceneStructure,
+    SceneStructure
 
-    get_active_vehicles,
 
     # #####################################
     # # subscene_extraction
@@ -47,12 +57,6 @@ export
     # #####################################
     # # learning
     # PseudolikelihoodPrealloc,
-
-    VehicleBounds,
-    domain_size_s,
-    domain_size_t,
-    domain_size_v,
-    domain_size_ϕ
 
     # reset_weights!,
     # calc_pseudolikelihood

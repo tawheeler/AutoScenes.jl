@@ -12,9 +12,9 @@ type SceneStructure{SharedFeatures <: Tuple{Vararg{Function}}} # a Factor Graph
     active_vehicles::Set{Int} # set of vehicles that can be manipulated (vehicle index)
 end
 
-function SceneStructure{SharedFeatures <: Tuple{Vararg{Function}}}(
-    scene::Scene,
-    roadway::Roadway,
+function SceneStructure{SharedFeatures <: Tuple{Vararg{Function}}, S, D, I, R}(
+    scene::EntityFrame{S,D,I},
+    roadway::R,
     shared_features::SharedFeatures,
     vehicle_indices::AbstractVector{Int} = 1:length(scene),
     )
