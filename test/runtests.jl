@@ -143,7 +143,71 @@ structure = SceneStructure(scene, roadway, shared_features)
 vehicle_index = 1
 bounds = VehicleBounds(scene, roadway, structure.lead_follow, vehicle_index)
 
+pseudo_expectation(f, scene, roadway, vehicle_indices, target)
 
+pseudo_expectation(f, vars, j, roadway)
+vars:
+- variable instance
+- variable bounds
+
+speed, vars -> :v
+delta speed, vars -> :v1, :v2
+
+
+abstract Variable
+type Speed <: Variable
+end
+
+function extract()
+
+# Variable instance for a particular scene
+type VarInstance
+    value::Float64 # value for this particular car
+    bounds::StateBounds # value for this particular car
+end
+
+
+
+###
+
+function speed{R}(
+    vars::Tuple{Speed},
+    roadway::R,
+    )
+
+    return vars[1].value
+end
+function AutoScenes.assign_feature{F <: typeof(speed), R}(
+    f::F,
+    scene::Union{Scene, MobiusScene},
+    roadway::R,
+    active_vehicles::Set{Int},
+    lead_follow::LeadFollowRelationships,
+    )
+
+    assignments = Tuple{Speed}[]
+
+    for (vehicle_index, index_fore) in enumerate(lead_follow.index_fore)
+        if index_fore != 0 && (vehicle_index ∈ active_vehicles || index_fore ∈ active_vehicles)
+
+            @assert index_fore != vehicle_index
+            push!(retval, (VarInstance(Speed, scene[vehicle_index]),))
+        end
+    end
+
+    return retval
+end
+# scope{F<:typeof(speed)}(f::F) = {Speed}
+
+function delta_speed{R}(
+    vars::Tuple{Speed,Speed},
+    roadway::R,
+    )
+
+    v_rear = vars[1].value
+    v_fore = vars[2].value
+    return v_fore - v_rear
+end
 
 
 
