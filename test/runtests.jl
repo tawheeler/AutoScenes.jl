@@ -135,13 +135,21 @@ structure = SceneStructure(scene, roadway, shared_features)
 
 @test isapprox(f₂(scene, roadway, (1,2)), 2.0 - 1.0)
 
-# vehicle_index = 1
-# Δlo_s, Δhi_s = AutoScenes.get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
-# Δlo_t, Δhi_t = AutoScenes.get_relative_variable_bounds_t(scene, roadway, vehicle_index)
-# Δlo_v, Δhi_v = -5.0, 5.0
-# Δlo_ϕ, Δhi_ϕ = -3.0, 3.0
+#####
 
-# bounds = VehicleBounds(Δlo_s, Δhi_s, Δlo_t, Δhi_t, Δlo_v, Δhi_v, Δlo_ϕ, Δhi_ϕ)
+vehicle_index = 1
+Δlo_s, Δhi_s = AutoScenes.get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
+Δlo_t, Δhi_t = AutoScenes.get_relative_variable_bounds_t(scene, roadway, vehicle_index)
+Δlo_v, Δhi_v = -5.0, 5.0
+Δlo_ϕ, Δhi_ϕ = -3.0, 3.0
+
+bounds = VehicleBounds(Δlo_s, Δhi_s, Δlo_t, Δhi_t, Δlo_v, Δhi_v, Δlo_ϕ, Δhi_ϕ)
+
+
+
+
+
+
 
 # calc_pseudolikelihood_gradient(ϕ_road, scene, structure, roadway)
 

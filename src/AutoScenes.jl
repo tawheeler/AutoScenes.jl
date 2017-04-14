@@ -18,7 +18,7 @@ export
     LeadFollowRelationships,
     SceneStructure,
 
-    get_active_vehicles
+    get_active_vehicles,
 
     # #####################################
     # # subscene_extraction
@@ -48,7 +48,11 @@ export
     # # learning
     # PseudolikelihoodPrealloc,
 
-    # VehicleBounds,
+    VehicleBounds,
+    domain_size_s,
+    domain_size_t,
+    domain_size_v,
+    domain_size_ϕ
 
     # reset_weights!,
     # calc_pseudolikelihood
@@ -94,7 +98,7 @@ include("scene_structures.jl")
 # include("subscene_extraction.jl")
 # include("structure_dataset.jl")
 # include("scenedataset.jl")
-# include("learning.jl")
+include("learning.jl")
 # include("stochastic_gradient_ascent_params.jl")
 # include("sampling.jl")
 # include("io.jl")
