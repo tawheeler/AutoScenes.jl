@@ -1,4 +1,4 @@
-VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
+__precompile__(true)
 
 module AutoScenes
 
@@ -8,25 +8,17 @@ using AutoViz
 export
 
     #####################################
-    LogLinearSharedFactor,
-    # evaluate_dot,
-    # evaluate_exp,
-    # create_shared_factors,
-
     uses_s,
     uses_t,
     uses_v,
     uses_ϕ,
-
-    assign_factors,
+    assign_feature,
 
     #####################################
     LeadFollowRelationships,
     SceneStructure,
 
-    get_active_vehicles,
-    gen_scene_structure,
-    # evaluate_dot!,
+    get_active_vehicles
 
     # #####################################
     # # subscene_extraction
@@ -56,11 +48,11 @@ export
     # # learning
     # PseudolikelihoodPrealloc,
 
-    VehicleBounds,
+    # VehicleBounds,
 
     # reset_weights!,
     # calc_pseudolikelihood
-    calc_pseudolikelihood_gradient
+    # calc_pseudolikelihood_gradient
 
     # #####################################
     # # Batch Sampler
@@ -96,12 +88,13 @@ export
     # metropolis_hastings!,
     # sample
 
-include("factors.jl")
-# include("scene_structures.jl")
+include("utils.jl")
+include("features.jl")
+include("scene_structures.jl")
 # include("subscene_extraction.jl")
 # include("structure_dataset.jl")
 # include("scenedataset.jl")
-include("learning.jl")
+# include("learning.jl")
 # include("stochastic_gradient_ascent_params.jl")
 # include("sampling.jl")
 # include("io.jl")
