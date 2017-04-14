@@ -11,6 +11,8 @@ type SceneStructureDataset
 end
 SceneStructureDataset(factors) = SceneStructureDataset(Trajdata[], SceneSource[], SceneStructure[], factors)
 
+Base.show(io::IO, dset::SceneStructureDataset) = @printf(io, "SceneStructureDataset(%d scenes)", length(dset.structures))
+
 Base.length(dset::SceneStructureDataset) = length(dset.structures)
 function nvehicles(dset::SceneStructureDataset)
     count = 0
