@@ -45,7 +45,7 @@ immutable StateBounds
     Δhi::Float64
 end
 domain_size(bounds::StateBounds) = bounds.Δhi - bounds.Δlo
-Distributions.Uniform(bounds::StateBounds) = Uniform(bounds.lo, bounds.hi)
+Distributions.Uniform(bounds::StateBounds) = Uniform(bounds.Δlo, bounds.Δhi)
 
 ###
 
