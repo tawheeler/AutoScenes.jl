@@ -4,30 +4,24 @@ module AutoScenes
 
 using AutomotiveDrivingModels
 using AutoViz
+using Distributions
 
 export
 
     #####################################
     LeadFollowRelationships,
+
     StateBounds,
-    VehicleBounds,
-
-    get_active_vehicles,
     domain_size,
-    get_state_bounds_s,
-    get_state_bounds_r,
-    get_state_bounds_v,
-    get_state_bounds_ϕ,
+
+    Vars,
 
     #####################################
-    uses_s,
-    uses_t,
-    uses_v,
-    uses_ϕ,
     assign_feature,
+    assign_features
 
     #####################################
-    SceneStructure
+    # SceneStructure
 
 
     # #####################################
@@ -98,11 +92,11 @@ export
 
 include("utils.jl")
 include("features.jl")
-include("scene_structures.jl")
+# include("scene_structures.jl")
 # include("subscene_extraction.jl")
 # include("structure_dataset.jl")
 # include("scenedataset.jl")
-include("learning.jl")
+# include("learning.jl")
 # include("stochastic_gradient_ascent_params.jl")
 # include("sampling.jl")
 # include("io.jl")
