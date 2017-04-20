@@ -18,7 +18,14 @@ export
 
     #####################################
     assign_feature,
-    assign_features
+    assign_features,
+
+    scope,
+    inscope,
+
+    calc_expectation_x_given_other,
+    log_ptilde,
+    ptilde
 
     #####################################
     # SceneStructure

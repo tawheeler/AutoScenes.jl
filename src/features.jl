@@ -29,6 +29,40 @@ function assign_features{F<:Tuple{Vararg{Function}}, S,D,I, R}(
 end
 
 """
+    Returns a list of indices for all assignments
+    for which scope(fⱼ) ∋ xₖ
+"""
+function scope(
+    var_index::Int,
+    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    )
+
+    retval = Int[]
+    for (assignment_index,(feature_index, assignment)) in enumerate(assignments)
+        if var_index ∈ assignment
+            push!(retval, assignment_index)
+        end
+    end
+    return retval
+end
+
+"""
+Returns whether xₖ ∈ scope(fⱼ)
+
+where var_index is the index of the variable (xₖ)
+      feature_index is the index of the assigned feature (fⱼ)
+"""
+function inscope(
+    var_index::Int,
+    assignment_index::Int,
+    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    )
+
+    assignment = assignments[assignment_index][2]
+    return var_index ∈ assignment
+end
+
+"""
     Compute E[f(x ∣ other)]
 
     where xⱼ ~ P(⋅ | other)
@@ -75,4 +109,40 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
     vars.values[j] = x₀ # reset initial value
 
     return numerator/denominator
+end
+
+
+"""
+    Compute log_ptilde(assignment) = exp(θᵀf)
+"""
+function log_ptilde{F<:Tuple{Vararg{Function}}, R}(
+    features::F,
+    θ::Vector{Float64},
+    vars::Vars,
+    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    roadway::R,
+    )::Float64
+
+    v = 0.0
+    for (feature_index, assignment) in assignments
+        f = features[feature_index]
+        w = θ[feature_index]
+        v += f(vars, assignment, roadway)
+    end
+    return v
+end
+
+"""
+    Compute ptilde(assignment) = exp(θᵀf)
+"""
+function ptilde{F<:Tuple{Vararg{Function}}, R}(
+    features::F,
+    θ::Vector{Float64},
+    vars::Vars,
+    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    roadway::R,
+    )::Float64
+
+    v = log_ptilde(features, θ, vars, assignments, roadway)
+    return exp(v)
 end

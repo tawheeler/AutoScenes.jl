@@ -145,27 +145,14 @@ assignments = assign_features(features, scene, roadway, vars)
 @test assignments[3] == (1, (6,))
 @test assignments[4] == (1, (8,))
 @test assignments[5] == (2, (2,4))
+@test assignments[6] == (2, (4,6))
+@test assignments[7] == (2, (6,8))
+@test assignments[8] == (2, (8,2))
 
-"""
-    Compute ptilde(assignment) = exp(θᵀf)
-"""
-function ptilde{F<:Tuple{Vararg{Function}}, R}(
-    features::F,
-    θ::Vector{Float64},
-    vars::Vars,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
-    roadway::R,
-    )
-
-    v = 0.0
-    for (feature_index, assignment) in assignments
-        f = features[feature_index]
-        w = θ[feature_index]
-        v += f(vars, assignment, roadway)
-    end
-
-    return exp(v)
-end
+@test scope(1, assignments) == Int[]
+@test scope(2, assignments) == [1,5,8]
+@test scope(3, assignments) == Int[]
+@test scope(4, assignments) == [2,5,6]
 
 θ = ones(length(vars))
 @test ptilde(features, θ, vars, assignments, roadway) ≈ exp(
@@ -179,60 +166,65 @@ end
         θ[8] * delta_speed(vars, assignments_delta_speed[4], roadway)
     )
 
-"""
-    Compute E[f(x ∣ other)]
-
-    where xⱼ ~ P(⋅ | other)
-
-Where f is the feature function,
-vars are the inputs to the feature function set to their present value,
-and i is the index of x, the variable we are running over.
-
-This calculation is performed using Monte Carlo integration:
-
-    E[f(x ∣ other )] ≈ [∑ f(xⱼ ∣ other) * Wⱼ ] / [∑ Wⱼ]
-
-    where xⱼ ~ Uniform
-      and Wⱼ = ptilde(xⱼ, other) / U(xⱼ)
-
-Assignments is typically the subset of vectors that
-"""
-function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
-    i::Int, # index of the feature (in assignments) we are running this for
-    j::Int, # index of the variable (in vars) we are running this for
-    features::F, # shared feature functions
-    θ::Vector{Float64}, # weights on the shared features
-    vars::Vars, # all variables, set to current assignment
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}}, # assignment of index of shared feature → indeces of input vars
-    roadway::R,
-    nsamples::Int = 100, # number of Monte Carlo samples
-    )::Float64
-
-    feature_index, assignment = assignments[i]
-    x₀ = vars.values[j] # store initial value
-    U = Uniform(vars.bounds[j])
-    f = features[feature_index]
-
-    numerator = 0.0
-    denominator = 0.0
-    for k in 1 : nsamples
-        Δx = rand(U)
-        vars.values[j] = x₀ + Δx # set value
-        W = ptilde(features, θ, vars, assignments, roadway) / pdf(U, Δx)
-        numerator += W*f(vars, assignment, roadway) # unfortunately, this is computed twice
-        denominator += W
-    end
-
-    vars.values[j] = x₀ # reset initial value
-
-    return numerator/denominator
-end
-
 # E[speed(v)]
-println(calc_expectation_x_given_other(1, 2, features, θ, vars, assignments, roadway))
+calc_expectation_x_given_other(1, 2, features, θ, vars, assignments, roadway)
 
 # E[delta_speed(v_rear | v_fore)]
-println(calc_expectation_x_given_other(2, 5, features, θ, vars, assignments, roadway))
+calc_expectation_x_given_other(2, 5, features, θ, vars, assignments, roadway)
+
+
+
+"""
+Compute the log of the pseudolikelihood for a single datum
+where the pseudolikelihood is ∏ p(x ∣ oth)
+"""
+function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
+    features::F,
+    θ::Vector{Float64},
+    vars::Vars,
+    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    roadway::R,
+    nsamples::Int = 100, # number of Monte Carlo samples
+    )
+
+    retval = 0.0
+    # loop through variables
+    for var_index in 1 : length(vars)
+
+        # the positive term
+        var_scope = scope(var_index, assignments)
+        for assignment_index in var_scope
+            feature_index, assignment = assignments[assignment_index]
+            for i in assignment
+                retval += θ[i] * vars.values[i]
+            end
+        end
+
+        # the negative term, computed via Monte Carlo integration
+        neg_term = 0.0
+        x₀ = vars.values[var_index] # store initial value
+        U = Uniform(vars.bounds[var_index])
+        for k in 1 : nsamples
+            Δx = rand(U)
+            vars.values[var_index] = x₀ + Δx # set value
+            subvalue = 0.0
+            for assignment_index in var_scope
+                feature_index, assignment = assignments[assignment_index]
+                f = features[feature_index]
+                for i in assignment
+                    subvalue += θ[i] * f(vars, assignment, roadway)
+                end
+            end
+            neg_term += exp(subvalue)
+        end
+        vars.values[var_index] = x₀ # reset initial value
+        retval -= log(neg_term)
+    end
+
+    return retval
+end
+
+println(log_pseudolikelihood(features, θ, vars, assignments, roadway))
 
 ###
 
