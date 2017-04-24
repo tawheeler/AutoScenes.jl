@@ -153,6 +153,7 @@ assignments = assign_features(features, scene, roadway, vars)
 @test scope(2, assignments) == [1,5,8]
 @test scope(3, assignments) == Int[]
 @test scope(4, assignments) == [2,5,6]
+scopes = [scope(var_index, assignments) for var_index in 1 : length(vars)]
 
 θ = ones(length(vars))
 @test ptilde(features, θ, vars, assignments, roadway) ≈ exp(
@@ -167,64 +168,28 @@ assignments = assign_features(features, scene, roadway, vars)
     )
 
 # E[speed(v)]
-calc_expectation_x_given_other(1, 2, features, θ, vars, assignments, roadway)
+srand(0)
+@test isapprox(calc_expectation_x_given_other(1, 2, features, θ, vars, assignments, roadway), 30.61164, atol=1e-5)
+srand(0)
+@test isapprox(calc_expectation_x_given_other(1, 2, features, θ, vars, assignments, scopes, roadway), 30.61164, atol=1e-5)
 
 # E[delta_speed(v_rear | v_fore)]
-calc_expectation_x_given_other(2, 5, features, θ, vars, assignments, roadway)
+srand(0)
+@test isapprox(calc_expectation_x_given_other(2, 5, features, θ, vars, assignments, roadway), 12.00000, atol=1e-5)
+srand(0)
+@test isapprox(calc_expectation_x_given_other(2, 5, features, θ, vars, assignments, scopes, roadway), 12.00000, atol=1e-5)
 
+srand(0)
+@test isapprox(log_pseudolikelihood(features, θ, vars, assignments, scopes, roadway), 49.10893, atol=1e-5)
 
+srand(0)
+@test isapprox(log_pseudolikelihood_derivative_single(1, features, θ, vars, assignments, scopes, roadway), -20.61164, atol=1e-5)
 
-"""
-Compute the log of the pseudolikelihood for a single datum
-where the pseudolikelihood is ∏ p(x ∣ oth)
-"""
-function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
-    features::F,
-    θ::Vector{Float64},
-    vars::Vars,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
-    roadway::R,
-    nsamples::Int = 100, # number of Monte Carlo samples
-    )
+srand(0)
+@test isapprox(log_pseudolikelihood_derivative_complete(1, features, θ, vars, assignments, scopes, roadway), -20.61164, atol=1e-5)
 
-    retval = 0.0
-    # loop through variables
-    for var_index in 1 : length(vars)
-
-        # the positive term
-        var_scope = scope(var_index, assignments)
-        for assignment_index in var_scope
-            feature_index, assignment = assignments[assignment_index]
-            for i in assignment
-                retval += θ[i] * vars.values[i]
-            end
-        end
-
-        # the negative term, computed via Monte Carlo integration
-        neg_term = 0.0
-        x₀ = vars.values[var_index] # store initial value
-        U = Uniform(vars.bounds[var_index])
-        for k in 1 : nsamples
-            Δx = rand(U)
-            vars.values[var_index] = x₀ + Δx # set value
-            subvalue = 0.0
-            for assignment_index in var_scope
-                feature_index, assignment = assignments[assignment_index]
-                f = features[feature_index]
-                for i in assignment
-                    subvalue += θ[i] * f(vars, assignment, roadway)
-                end
-            end
-            neg_term += exp(subvalue)
-        end
-        vars.values[var_index] = x₀ # reset initial value
-        retval -= log(neg_term)
-    end
-
-    return retval
-end
-
-println(log_pseudolikelihood(features, θ, vars, assignments, roadway))
+srand(0)
+@test isapprox(log_pseudolikelihood_derivative_complete(2, features, θ, vars, assignments, scopes, roadway), -53.84615, atol=1e-5)
 
 ###
 

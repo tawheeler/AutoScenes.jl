@@ -1,3 +1,107 @@
+"""
+Compute the log of the pseudolikelihood for a single datum
+where the pseudolikelihood is ∏ p(x ∣ oth)
+"""
+function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
+    features::F,
+    θ::Vector{Float64},
+    vars::Vars,
+    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    scopes::Vector{Vector{Int}}, # var_index -> scope
+    roadway::R,
+    nsamples::Int = 100, # number of Monte Carlo samples
+    )
+
+    retval = 0.0
+    # loop through variables
+    for (var_index, scope) in enumerate(scopes)
+
+        # the positive term
+        for assignment_index in scope
+            feature_index, assignment = assignments[assignment_index]
+            for i in assignment
+                retval += θ[i] * vars.values[i]
+            end
+        end
+
+        # the negative term, computed via Monte Carlo integration
+        neg_term = 0.0
+        x₀ = vars.values[var_index] # store initial value
+        U = Uniform(vars.bounds[var_index])
+        for k in 1 : nsamples
+            Δx = rand(U)
+            vars.values[var_index] = x₀ + Δx # set value
+            subvalue = 0.0
+            for assignment_index in scope
+                feature_index, assignment = assignments[assignment_index]
+                f = features[feature_index]
+                for i in assignment
+                    subvalue += θ[i] * f(vars, assignment, roadway)
+                end
+            end
+            neg_term += exp(subvalue)
+        end
+        vars.values[var_index] = x₀ # reset initial value
+        retval -= log(neg_term)
+    end
+
+    return retval
+end
+
+"""
+Compute the derivative of the log pseudolikelihood with respect to a single instance of a (θ, f) pair.
+"""
+function log_pseudolikelihood_derivative_single{F<:Tuple{Vararg{Function}}, R}(
+    assignment_index::Int, # index of the (θ,f) pair in assignments
+    features::F,
+    θ::Vector{Float64},
+    vars::Vars,
+    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    scopes::Vector{Vector{Int}}, # var_index -> scope
+    roadway::R,
+    nsamples::Int = 100, # number of Monte Carlo samples
+    )
+
+    retval = 0.0
+    feature_index, assignment = assignments[assignment_index]
+    for var_index in assignment
+
+        # the positive term
+        retval += vars.values[var_index]
+
+        # the negative term, computed via Monte Carlo integration
+        retval -= calc_expectation_x_given_other(feature_index, var_index, features, θ, vars, assignments, scopes, roadway, nsamples)
+    end
+
+    return retval
+end
+
+"""
+Compute the derivative of the log pseudolikelihood with respect to a shared θ value.
+"""
+function log_pseudolikelihood_derivative_complete{F<:Tuple{Vararg{Function}}, R}(
+    feature_index::Int,
+    features::F,
+    θ::Vector{Float64},
+    vars::Vars,
+    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    scopes::Vector{Vector{Int}}, # var_index -> scope
+    roadway::R,
+    nsamples::Int = 100, # number of Monte Carlo samples
+    )
+
+    retval = 0.0
+    for (assignment_index, (feature_index2, assignment)) in enumerate(assignments)
+        if feature_index == feature_index2
+            retval += log_pseudolikelihood_derivative_single(assignment_index, features, θ, vars, assignments, scopes, roadway, nsamples)
+        end
+    end
+    return retval
+end
+
+
+
+
 # immutable PseudolikelihoodPrealloc
 
 #     lnP_tilde_denom_arr_s::Vector{Float64}

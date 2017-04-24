@@ -25,7 +25,7 @@ export
 
     calc_expectation_x_given_other,
     log_ptilde,
-    ptilde
+    ptilde,
 
     #####################################
     # SceneStructure
@@ -58,6 +58,10 @@ export
     # #####################################
     # # learning
     # PseudolikelihoodPrealloc,
+
+    log_pseudolikelihood,
+    log_pseudolikelihood_derivative_single,
+    log_pseudolikelihood_derivative_complete
 
     # reset_weights!,
     # calc_pseudolikelihood
@@ -103,7 +107,7 @@ include("features.jl")
 # include("subscene_extraction.jl")
 # include("structure_dataset.jl")
 # include("scenedataset.jl")
-# include("learning.jl")
+include("learning.jl")
 # include("stochastic_gradient_ascent_params.jl")
 # include("sampling.jl")
 # include("io.jl")

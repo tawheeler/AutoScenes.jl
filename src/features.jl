@@ -29,8 +29,75 @@ function assign_features{F<:Tuple{Vararg{Function}}, S,D,I, R}(
 end
 
 """
+    Compute log_ptilde(assignment) = exp(θᵀf)
+"""
+function log_ptilde{F<:Tuple{Vararg{Function}}, R}(
+    features::F,
+    θ::Vector{Float64},
+    vars::Vars,
+    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    roadway::R,
+    )::Float64
+
+    v = 0.0
+    for (feature_index, assignment) in assignments
+        f = features[feature_index]
+        w = θ[feature_index]
+        v += f(vars, assignment, roadway)
+    end
+    return v
+end
+function log_ptilde{F<:Tuple{Vararg{Function}}, R}(
+    features::F,
+    θ::Vector{Float64},
+    vars::Vars,
+    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    scope::Vector{Int},
+    roadway::R,
+    )::Float64
+
+    v = 0.0
+    for assignment_index in scope
+        feature_index, assignment = assignments[assignment_index]
+        f = features[feature_index]
+        w = θ[feature_index]
+        v += f(vars, assignment, roadway)
+    end
+    return v
+end
+
+"""
+    Compute ptilde(assignment) = exp(θᵀf)
+"""
+function ptilde{F<:Tuple{Vararg{Function}}, R}(
+    features::F,
+    θ::Vector{Float64},
+    vars::Vars,
+    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    roadway::R,
+    )::Float64
+
+    v = log_ptilde(features, θ, vars, assignments, roadway)
+    return exp(v)
+end
+function ptilde{F<:Tuple{Vararg{Function}}, R}(
+    features::F,
+    θ::Vector{Float64},
+    vars::Vars,
+    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    scope::Vector{Int},
+    roadway::R,
+    )::Float64
+
+    v = log_ptilde(features, θ, vars, assignments, scope, roadway)
+    return exp(v)
+end
+
+"""
     Returns a list of indices for all assignments
     for which scope(fⱼ) ∋ xₖ
+
+    That is, a list of assignments such that xₖ is included.
 """
 function scope(
     var_index::Int,
@@ -77,8 +144,6 @@ This calculation is performed using Monte Carlo integration:
 
     where xⱼ ~ Uniform
       and Wⱼ = ptilde(xⱼ, other) / U(xⱼ)
-
-Assignments is typically the subset of vectors that
 """
 function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
     i::Int, # index of the feature (in assignments) we are running this for
@@ -110,39 +175,35 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
 
     return numerator/denominator
 end
-
-
-"""
-    Compute log_ptilde(assignment) = exp(θᵀf)
-"""
-function log_ptilde{F<:Tuple{Vararg{Function}}, R}(
-    features::F,
-    θ::Vector{Float64},
-    vars::Vars,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
+    i::Int, # index of the feature (in assignments) we are running this for
+    j::Int, # index of the variable (in vars) we are running this for
+    features::F, # shared feature functions
+    θ::Vector{Float64}, # weights on the shared features
+    vars::Vars, # all variables, set to current assignment
+    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}}, # assignment of index of shared feature → indeces of input vars
+    scopes::Vector{Vector{Int}},
     roadway::R,
+    nsamples::Int = 100, # number of Monte Carlo samples
     )::Float64
 
-    v = 0.0
-    for (feature_index, assignment) in assignments
-        f = features[feature_index]
-        w = θ[feature_index]
-        v += f(vars, assignment, roadway)
+    feature_index, assignment = assignments[i]
+    x₀ = vars.values[j] # store initial value
+    U = Uniform(vars.bounds[j])
+    f = features[feature_index]
+    scope = scopes[j] # scope of j
+
+    numerator = 0.0
+    denominator = 0.0
+    for k in 1 : nsamples
+        Δx = rand(U)
+        vars.values[j] = x₀ + Δx # set value
+        W = ptilde(features, θ, vars, assignments, roadway) / pdf(U, Δx)
+        numerator += W*f(vars, assignment, roadway) # unfortunately, this is computed twice
+        denominator += W
     end
-    return v
-end
 
-"""
-    Compute ptilde(assignment) = exp(θᵀf)
-"""
-function ptilde{F<:Tuple{Vararg{Function}}, R}(
-    features::F,
-    θ::Vector{Float64},
-    vars::Vars,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
-    roadway::R,
-    )::Float64
+    vars.values[j] = x₀ # reset initial value
 
-    v = log_ptilde(features, θ, vars, assignments, roadway)
-    return exp(v)
+    return numerator/denominator
 end
