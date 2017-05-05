@@ -191,6 +191,26 @@ srand(0)
 srand(0)
 @test isapprox(log_pseudolikelihood_derivative_complete(2, features, θ, vars, assignments, scopes, roadway), -53.84615, atol=1e-5)
 
+factorgraph = FactorGraph(vars, assignments, roadway)
+factorgraph = FactorGraph(features, scene, roadway)
+
+srand(0)
+@test isapprox(log_pseudolikelihood(features, θ, factorgraph), 49.10893, atol=1e-5)
+srand(0)
+@test isapprox(log_pseudolikelihood_derivative_single(1, features, θ, factorgraph), -20.61164, atol=1e-5)
+srand(0)
+@test isapprox(log_pseudolikelihood_derivative_complete(1, features, θ, factorgraph), -20.61164, atol=1e-5)
+srand(0)
+@test isapprox(log_pseudolikelihood_derivative_complete(2, features, θ, factorgraph), -53.84615, atol=1e-5)
+
+factorgraphs = [factorgraph]
+srand(0)
+@test isapprox(log_pseudolikelihood(features, θ, factorgraphs), 49.10893, atol=1e-5)
+srand(0)
+@test isapprox(log_pseudolikelihood_derivative_complete(1, features, θ, factorgraphs), -20.61164, atol=1e-5)
+srand(0)
+@test isapprox(log_pseudolikelihood_derivative_complete(2, features, θ, factorgraphs), -53.84615, atol=1e-5)
+
 ###
 
 # function speed{R}(

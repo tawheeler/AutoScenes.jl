@@ -1,5 +1,6 @@
+
 """
-Compute the log of the pseudolikelihood for a single datum
+Compute the log of the pseudolikelihood for a single datum or dataset
 where the pseudolikelihood is ∏ p(x ∣ oth)
 """
 function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
@@ -10,7 +11,7 @@ function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
     scopes::Vector{Vector{Int}}, # var_index -> scope
     roadway::R,
     nsamples::Int = 100, # number of Monte Carlo samples
-    )
+    )::Float64
 
     retval = 0.0
     # loop through variables
@@ -47,6 +48,30 @@ function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
 
     return retval
 end
+function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
+    features::F,
+    θ::Vector{Float64},
+    factorgraph::FactorGraph{R},
+    nsamples::Int = 100, # number of Monte Carlo samples
+    )
+
+    return log_pseudolikelihood(features, θ, factorgraph.vars,
+            factorgraph.assignments, factorgraph.scopes, factorgraph.roadway, nsamples)
+end
+function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
+    features::F,
+    θ::Vector{Float64},
+    factorgraphs::Vector{FactorGraph{R}},
+    nsamples::Int = 100, # number of Monte Carlo samples
+    )::Float64
+
+    retval = 0.0
+    # TODO: parallelize
+    for factorgraph in factorgraphs
+        retval += log_pseudolikelihood(features, θ, factorgraph, nsamples)
+    end
+    return retval / length(factorgraphs)
+end
 
 """
 Compute the derivative of the log pseudolikelihood with respect to a single instance of a (θ, f) pair.
@@ -75,6 +100,17 @@ function log_pseudolikelihood_derivative_single{F<:Tuple{Vararg{Function}}, R}(
 
     return retval
 end
+function log_pseudolikelihood_derivative_single{F<:Tuple{Vararg{Function}}, R}(
+    assignment_index::Int, # index of the (θ,f) pair in assignments
+    features::F,
+    θ::Vector{Float64},
+    factorgraph::FactorGraph{R},
+    nsamples::Int = 100, # number of Monte Carlo samples
+    )
+
+    return log_pseudolikelihood_derivative_single(assignment_index, features, θ, factorgraph.vars,
+            factorgraph.assignments, factorgraph.scopes, factorgraph.roadway, nsamples)
+end
 
 """
 Compute the derivative of the log pseudolikelihood with respect to a shared θ value.
@@ -98,7 +134,46 @@ function log_pseudolikelihood_derivative_complete{F<:Tuple{Vararg{Function}}, R}
     end
     return retval
 end
+function log_pseudolikelihood_derivative_complete{F<:Tuple{Vararg{Function}}, R}(
+    feature_index::Int,
+    features::F,
+    θ::Vector{Float64},
+    factorgraph::FactorGraph{R},
+    nsamples::Int = 100, # number of Monte Carlo samples
+    )
 
+    return log_pseudolikelihood_derivative_complete(feature_index, features, θ, factorgraph.vars,
+        factorgraph.assignments, factorgraph.scopes, factorgraph.roadway, nsamples)
+end
+function log_pseudolikelihood_derivative_complete{F<:Tuple{Vararg{Function}}, R}(
+    feature_index::Int,
+    features::F,
+    θ::Vector{Float64},
+    factorgraphs::Vector{FactorGraph{R}},
+    nsamples::Int = 100, # number of Monte Carlo samples
+    )::Float64
+
+    retval = 0.0
+    # TODO: parallelize
+    for factorgraph in factorgraphs
+        retval += log_pseudolikelihood_derivative_complete(feature_index, features, θ, factorgraph, nsamples)
+    end
+    return retval / length(factorgraphs)
+end
+
+
+# """
+# Compute the log pseudolikelihood over a dataset
+# """
+# function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
+#     features::F,
+#     θ::Vector{Float64},
+#     nsamples::Int = 100, # number of Monte Carlo samples
+#     )
+
+    
+
+# end
 
 
 

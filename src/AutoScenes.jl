@@ -15,6 +15,7 @@ export
     domain_size,
 
     Vars,
+    FactorGraph,
 
     #####################################
     assign_feature,
@@ -27,6 +28,7 @@ export
     log_ptilde,
     ptilde,
 
+    
     #####################################
     # SceneStructure
 
