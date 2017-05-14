@@ -28,7 +28,7 @@ export
     log_ptilde,
     ptilde,
 
-    
+
     #####################################
     # SceneStructure
 
@@ -43,31 +43,12 @@ export
     # pull_subscene,
 
     # #####################################
-    # # structure_dataset
-    # SceneStructureDataset,
-    # SceneSource,
-
-    # get_scene_structure_and_roadway!,
-    # pull_scene_dataset,
-
-    # #####################################
-    # # scenedataset
-
-    # SceneDataset,
-
-    # get_scene_and_roadway!,
-
-    # #####################################
     # # learning
-    # PseudolikelihoodPrealloc,
 
     log_pseudolikelihood,
     log_pseudolikelihood_derivative_single,
-    log_pseudolikelihood_derivative_complete
-
-    # reset_weights!,
-    # calc_pseudolikelihood
-    # calc_pseudolikelihood_gradient
+    log_pseudolikelihood_derivative_complete,
+    log_pseudolikelihood_gradient!
 
     # #####################################
     # # Batch Sampler

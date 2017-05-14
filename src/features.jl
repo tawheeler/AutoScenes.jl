@@ -158,18 +158,33 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
 
     feature_index, assignment = assignments[i]
     x₀ = vars.values[j] # store initial value
-    U = Uniform(vars.bounds[j])
     f = features[feature_index]
+    U = Uniform(vars.bounds[j])
 
-    numerator = 0.0
-    denominator = 0.0
-    for k in 1 : nsamples
-        Δx = rand(U)
-        vars.values[j] = x₀ + Δx # set value
-        W = ptilde(features, θ, vars, assignments, roadway) / pdf(U, Δx)
-        numerator += W*f(vars, assignment, roadway) # unfortunately, this is computed twice
-        denominator += W
+    
+    W = Δx -> begin
+       vars.values[j] = x₀ + Δx # set value
+       return ptilde(features, θ, vars, assignments, roadway) / pdf(U, Δx)
     end
+    num = Δx -> begin
+        w = W(Δx)
+        return w*f(vars, assignment, roadway)
+    end
+    
+    # unfortunately we compute W values twice
+    bound = vars.bounds[j]
+    numerator = quadgk(num, bound.Δlo, bound.Δhi, maxevals=nsamples)[1] # note: only take estimated integral, not the err
+    denominator = quadgk(W, bound.Δlo, bound.Δhi, maxevals=nsamples)[1]
+
+    # numerator = 0.0
+    # denominator = 0.0
+    # for k in 1 : nsamples
+        # Δx = rand(U)
+        # vars.values[j] = x₀ + Δx # set value
+        # W = ptilde(features, θ, vars, assignments, roadway) / pdf(U, Δx)
+        # numerator += W*f(vars, assignment, roadway) # unfortunately, this is computed twice
+        # denominator += W
+    # end
 
     vars.values[j] = x₀ # reset initial value
 
