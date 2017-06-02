@@ -1,103 +1,38 @@
-type SubSceneExtractParams
-    center::VecSE2 # center position of scene
-    length::Float64
-    box::ConvexPolygon
-
-    function SubSceneExtractParams(
-        center::VecSE2,
-        length::Float64=100.0, # distance along scene orientation to extend the scene to [ft]
-        width::Float64=50.0, # distance to either side to extend the scene to [ft]
-        )
-
-        x = polar(length/2, center.θ)
-        y = polar(width/2, center.θ+π/2)
-
-        o = convert(VecE2, center)
-        box = ConvexPolygon(4)
-        push!(box, o + x - y)
-        push!(box, o + x + y)
-        push!(box, o - x + y)
-        push!(box, o - x - y)
-
-        AutomotiveDrivingModels.ensure_pts_sorted_by_min_polar_angle!(box)
-
-        new(center, length, box)
-    end
-end
-
 """
-at least one vehicle has passed the scene and at least one vehicle has yet to enter it
+Extract the subscene consisting of all vehicles whose centers are inside of the oriented bounding box
 """
-function is_in_bounds(scene::Scene, scene_params::SubSceneExtractParams)
-
-    max_dist_front = 0.0
-    max_dist_rear = 0.0
-
-    for i in 1 : length(scene)
-        veh = scene.vehicles[i]
-        p_rel = inertial2body(veh.state.posG, scene_params.center)
-        max_dist_front = max(max_dist_front, p_rel.x + veh.def.length/2)
-        max_dist_rear = min(max_dist_rear, p_rel.x - veh.def.length/2)
-    end
-
-    max_dist_front ≥ scene_params.length/2 &&
-    -max_dist_rear ≥ scene_params.length/2
-end
-
-"""
-True if there is is always headway separation between all vehicles
-"""
-function is_there_longitudinal_room(scene::Scene, roadway::Roadway, vehicle_indeces::AbstractVector{Int}=1:length(scene))
-
-    F = VehicleTargetPointFront()
-    R = VehicleTargetPointRear()
-
-    for vehicle_index in vehicle_indeces
-
-        veh = scene[vehicle_index]
-
-        res_fore = get_neighbor_fore_along_lane(scene, vehicle_index, roadway, F, R, F)
-        if res_fore.ind != 0 && res_fore.Δs < 0.0
-            return false
+function extract_subscene!(subscene::Scene, scene::Scene, region::OBB)
+    empty!(subscene)
+    for veh in scene
+        P = VecE2(get_center(veh))
+        if contains(region, P)
+            push!(subscene, veh)
         end
+    end
+    return subscene
+end
 
-        res_rear = get_neighbor_rear_along_lane(scene, vehicle_index, roadway, R, F, R)
-        if res_rear.ind != 0 && res_rear.Δs < 0.0
-            return false
+"""
+Returns the number of vehicles that lie upstream, in, and downstream of the scene
+"""
+function get_num_vehicles_upstream_in_and_downstream(scene::Scene, region::OBB)
+
+    n_upstream = 0
+    n_in = 0
+    n_downstream = 0
+
+    for veh in scene
+        pos_rel = inertial2body(veh.state.posG, scene_params.center) # vehicle in the body frame
+        if pos_rel.x > region.aabb.len/2 # downstream
+            n_downstream += 1
+        elseif pos_rel.x < -region.aabb.len/2 # upstream
+            n_upstream += 1
+        elseif contains(region, VecE2(get_center(veh))) # in
+            # NOTE: some vehicles may be alongside the region, which we do not want to count
+            n_in += 1
         end
     end
 
-    true
+    return (n_upstream, n_in, n_downstream)
 end
 
-function is_scene_well_behaved(
-    scene::Scene,
-    roadway::Roadway,
-    scene_params::SubSceneExtractParams,
-    mem::CPAMemory=CPAMemory();
-    check_is_in_bounds::Bool=true,
-    check_longitudinal_room::Bool=true,
-    )
-
-    if check_is_in_bounds && !is_in_bounds(scene, scene_params)
-        return false
-    elseif check_longitudinal_room && !is_there_longitudinal_room(scene, roadway)
-        return false
-    end
-
-    true
-end
-
-
-function pull_subscene(scene::Scene, scene_params::SubSceneExtractParams)
-
-    vehicle_indeces = Int[]
-
-    for (i,veh) in enumerate(scene)
-        if contains(scene_params.box, veh.state.posG)
-            push!(vehicle_indeces, i)
-        end
-    end
-
-    vehicle_indeces
-end

@@ -5,6 +5,7 @@ module AutoScenes
 using AutomotiveDrivingModels
 using AutoViz
 using Distributions
+using Vec
 
 export
 
@@ -33,9 +34,10 @@ export
     # SceneStructure
 
 
-    # #####################################
-    # # subscene_extraction
-    # SubSceneExtractParams,
+    #####################################
+    # subscene_extraction
+
+    extract_subscene!,
 
     # is_in_bounds,
     # is_there_longitudinal_room,
@@ -87,7 +89,7 @@ export
 include("utils.jl")
 include("features.jl")
 # include("scene_structures.jl")
-# include("subscene_extraction.jl")
+include("subscene_extraction.jl")
 # include("structure_dataset.jl")
 # include("scenedataset.jl")
 include("learning.jl")
