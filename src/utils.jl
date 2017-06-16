@@ -8,7 +8,7 @@ function Base.:(==)(A::LeadFollowRelationships, B::LeadFollowRelationships)
            A.index_rear == B.index_rear
 end
 
-function LeadFollowRelationships(scene::Scene1D, roadway::StraightRoadway, vehicle_indices::AbstractVector{Int} = 1:length(scene))
+function LeadFollowRelationships(scene::EntityFrame{PosSpeed1D, BoundingBoxDef, Int}, roadway::Straight1DRoadway, vehicle_indices::AbstractVector{Int} = 1:length(scene))
 
     nvehicles = length(scene)
     index_fore = zeros(Int, nvehicles)
@@ -21,7 +21,7 @@ function LeadFollowRelationships(scene::Scene1D, roadway::StraightRoadway, vehic
 
     return LeadFollowRelationships(index_fore, index_rear)
 end
-function LeadFollowRelationships(scene::Scene, roadway::Roadway, vehicle_indices::AbstractVector{Int} = 1:length(scene))
+function LeadFollowRelationships(scene::EntityFrame{VehicleState, BoundingBoxDef, Int}, roadway::Roadway, vehicle_indices::AbstractVector{Int} = 1:length(scene))
 
     nvehicles = length(scene)
     index_fore = zeros(Int, nvehicles)
@@ -91,7 +91,7 @@ function FactorGraph{F<:Tuple{Vararg{Function}}, S,D,I, R}(
     scene::EntityFrame{S,D,I},
     roadway::R,
     )
-    
+
     vars = Vars(scene, roadway)
     assignments = assign_features(features, scene, roadway, vars)
     return FactorGraph(vars, assignments, roadway)

@@ -1,10 +1,13 @@
-def = VehicleDef(AgentClass.CAR, 4.0, 2.0)
-roadway = StraightRoadway(200.0)
-scene = Scene1D([
-    Vehicle1D(State1D(10.0,10.0), def, 1),
-    Vehicle1D(State1D(18.0,12.0), def, 2),
-    Vehicle1D(State1D(26.0,10.0), def, 3),
-    Vehicle1D(State1D(34.0, 8.0), def, 4),
+const Vehicle1D = Entity{PosSpeed1D, BoundingBoxDef, Int}
+const Scene1D = Frame{Vehicle1D}
+
+def = BoundingBoxDef(AgentClass.CAR, 4.0, 2.0)
+roadway = Straight1DRoadway(200.0)
+scene = Frame([
+    Vehicle1D(PosSpeed1D(10.0,10.0), def, 1),
+    Vehicle1D(PosSpeed1D(18.0,12.0), def, 2),
+    Vehicle1D(PosSpeed1D(26.0,10.0), def, 3),
+    Vehicle1D(PosSpeed1D(34.0, 8.0), def, 4),
 ])
 
 lead_follow = LeadFollowRelationships(scene, roadway)
@@ -19,7 +22,7 @@ lead_follow = LeadFollowRelationships(scene, roadway)
 Construct a Vars based on the scene.
 Each scene type must implement this function.
 """
-function AutoScenes.Vars(scene::Scene1D, roadway::StraightRoadway)
+function AutoScenes.Vars(scene::Scene1D, roadway::Straight1DRoadway)
 
     n = length(scene)
     vars = Vars(Array(Float64, 2n),
@@ -76,7 +79,7 @@ function speed{R}(
 end
 function AutoScenes.assign_feature{F <: typeof(speed), R}(
     f::F,
-    scene::Union{Scene, Scene1D},
+    scene::Scene1D,
     roadway::R,
     vars::Vars,
     )
@@ -111,7 +114,7 @@ end
 function AutoScenes.assign_feature{F <: typeof(delta_speed)}(
     f::F,
     scene::Scene1D,
-    roadway::StraightRoadway,
+    roadway::Straight1DRoadway,
     vars::Vars,
     )
 

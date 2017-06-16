@@ -203,7 +203,7 @@ function get_start_scene_and_roadway(ncars::Int)
 
     vehicles = Array(Vehicle, ncars)
     for i in 1 : ncars
-        vehicles[i] = Vehicle(VehicleState(VecSE2(100.0 + (i-1)*46.0,0.0,0.0), roadway, 13.0), VehicleDef(i, AgentClass.CAR, 4.0, 2.0))
+        vehicles[i] = Vehicle(VehicleState(VecSE2(100.0 + (i-1)*46.0,0.0,0.0), roadway, 13.0), BoundingBoxDef(i, AgentClass.CAR, 4.0, 2.0))
     end
 
     (Scene(vehicles), roadway)
