@@ -38,6 +38,7 @@ export
     # subscene_extraction
 
     extract_subscene!,
+    get_num_vehicles_upstream_in_and_downstream,
 
     # is_in_bounds,
     # is_there_longitudinal_room,

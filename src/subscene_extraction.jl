@@ -22,7 +22,8 @@ function get_num_vehicles_upstream_in_and_downstream(scene::Scene, region::OBB)
     n_downstream = 0
 
     for veh in scene
-        pos_rel = inertial2body(veh.state.posG, scene_params.center) # vehicle in the body frame
+        C = VecSE2(region.aabb.center, region.θ)
+        pos_rel = inertial2body(veh.state.posG, C) # vehicle in the body frame
         if pos_rel.x > region.aabb.len/2 # downstream
             n_downstream += 1
         elseif pos_rel.x < -region.aabb.len/2 # upstream
