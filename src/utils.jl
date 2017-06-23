@@ -8,7 +8,7 @@ function Base.:(==)(A::LeadFollowRelationships, B::LeadFollowRelationships)
            A.index_rear == B.index_rear
 end
 
-function LeadFollowRelationships(scene::EntityFrame{PosSpeed1D, BoundingBoxDef, Int}, roadway::Straight1DRoadway, vehicle_indices::AbstractVector{Int} = 1:length(scene))
+function LeadFollowRelationships(scene::EntityFrame{PosSpeed1D, BoundingBoxDef, Int}, roadway::Union{Straight1DRoadway, Curve, Wraparound{Straight1DRoadway}, Wraparound{Curve}}, vehicle_indices::AbstractVector{Int} = 1:length(scene))
 
     nvehicles = length(scene)
     index_fore = zeros(Int, nvehicles)

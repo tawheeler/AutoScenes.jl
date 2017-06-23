@@ -30,6 +30,8 @@ function AutoScenes.Vars(scene::Scene1D, roadway::Straight1DRoadway)
                 Array(Symbol, 2n),
                 Array(Int, 2n))
 
+    lead_follow = LeadFollowRelationships(scene, roadway)
+
     j = 0
     for (vehicle_index, veh) in enumerate(scene)
 
