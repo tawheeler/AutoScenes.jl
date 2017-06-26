@@ -2,7 +2,7 @@ const Vehicle1D = Entity{PosSpeed1D, BoundingBoxDef, Int}
 const Scene1D = Frame{Vehicle1D}
 
 def = BoundingBoxDef(AgentClass.CAR, 4.0, 2.0)
-roadway = Straight1DRoadway(200.0)
+roadway = Wraparound(Straight1DRoadway(200.0))
 scene = Frame([
     Vehicle1D(PosSpeed1D(10.0,10.0), def, 1),
     Vehicle1D(PosSpeed1D(18.0,12.0), def, 2),
@@ -22,7 +22,7 @@ lead_follow = LeadFollowRelationships(scene, roadway)
 Construct a Vars based on the scene.
 Each scene type must implement this function.
 """
-function AutoScenes.Vars(scene::Scene1D, roadway::Straight1DRoadway)
+function AutoScenes.Vars(scene::Scene1D, roadway::Wraparound{Straight1DRoadway})
 
     n = length(scene)
     vars = Vars(Array(Float64, 2n),
@@ -116,7 +116,7 @@ end
 function AutoScenes.assign_feature{F <: typeof(delta_speed)}(
     f::F,
     scene::Scene1D,
-    roadway::Straight1DRoadway,
+    roadway::Wraparound{Straight1DRoadway},
     vars::Vars,
     )
 

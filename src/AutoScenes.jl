@@ -88,6 +88,7 @@ export
     # sample
 
 include("utils.jl")
+include("factor_graphs.jl")
 include("features.jl")
 # include("scene_structures.jl")
 include("subscene_extraction.jl")
