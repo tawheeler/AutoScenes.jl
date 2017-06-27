@@ -161,7 +161,7 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
     f = features[feature_index]
     U = Uniform(vars.bounds[j])
 
-    
+
     W = Δx -> begin
        vars.values[j] = x₀ + Δx # set value
        return ptilde(features, θ, vars, assignments, roadway) / pdf(U, Δx)
@@ -170,7 +170,7 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
         w = W(Δx)
         return w*f(vars, assignment, roadway)
     end
-    
+
     # unfortunately we compute W values twice
     bound = vars.bounds[j]
     numerator = quadgk(num, bound.Δlo, bound.Δhi, maxevals=nsamples)[1] # note: only take estimated integral, not the err

@@ -141,8 +141,9 @@ function log_pseudolikelihood_derivative_complete{F<:Tuple{Vararg{Function}}, R}
     )
 
     retval = 0.0
-    for (assignment_index, (feature_index2, assignment)) in enumerate(assignments)
-        if feature_index == feature_index2
+    for assignment_index in 1 : length(assignments)
+        # for some reason doing it this way does not allocate memory
+        if feature_index == assignments[assignment_index][1]
             retval += log_pseudolikelihood_derivative_single(assignment_index, features, θ, vars, assignments, scopes, roadway, nsamples)
         end
     end
@@ -172,6 +173,9 @@ function log_pseudolikelihood_derivative_complete{F<:Tuple{Vararg{Function}}, R}
     for factorgraph in factorgraphs
         retval += log_pseudolikelihood_derivative_complete(feature_index, features, θ, factorgraph, nsamples)
     end
+    # retval = @parallel (+) for factorgraph in factorgraphs
+    #     retval += log_pseudolikelihood_derivative_complete(feature_index, features, θ, factorgraph, nsamples)
+    # end
     return retval / length(factorgraphs)
 end
 
