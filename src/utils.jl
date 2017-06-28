@@ -70,7 +70,9 @@ end
 
 ####
 
-typealias Assignment Tuple{Vararg{Int}}
+# typealias Assignment Tuple{Vararg{Int}}
+# typealias Assignment Union{Tuple{Int}, Tuple{Int,Int}}
+typealias Assignment Tuple{Int,Int}
 typealias Assignments Vector{Tuple{Int, Assignment}} # vector of {feature index + assignment}
 
 # const BOUNDS_ϕ = (deg2rad(-30),deg2rad(30))

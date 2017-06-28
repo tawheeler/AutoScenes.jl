@@ -1,6 +1,6 @@
 """
     For a given scene and roadway, return all of the vehicle_indices::NTuple{Int} that are valid for this shared feature
-These values are returned as a Vector{Tuple{Vararg{Int}}}
+These values are returned as a Vector{Assignment}
 """
 function assign_feature{F<:Function,S,D,I,R}(
     f::F,
@@ -18,7 +18,7 @@ function assign_features{F<:Tuple{Vararg{Function}}, S,D,I, R}(
     vars::Vars,
     )
 
-    assignments = Tuple{Int, Tuple{Vararg{Int}}}[]
+    assignments = Tuple{Int, Assignment}[]
     for (i, f) in enumerate(features)
         sub_assignments = assign_feature(f, scene, roadway, vars)
         for assignment in sub_assignments
@@ -35,20 +35,14 @@ function log_ptilde{F<:Tuple{Vararg{Function}}, R}(
     features::F,
     θ::Vector{Float64},
     vars::Vars,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    assignments::Assignments,
     roadway::R,
     )::Float64
 
     v = 0.0
-    # for tup in assignments
-    #     feature_index = tup[1]
-    #     f = features[feature_index]
-    #     w = θ[feature_index]
-    #     v += 1.0*w # TODO: DEBUG
-    # end
     for (feature_index, assignment) in assignments
-        f = features[feature_index]
-        w = θ[feature_index]
+        f = features[feature_index]::Function
+        w = θ[feature_index]::Float64
         v += w*f(vars, assignment, roadway)
     end
     return v
@@ -57,7 +51,7 @@ function log_ptilde{F<:Tuple{Vararg{Function}}, R}(
     features::F,
     θ::Vector{Float64},
     vars::Vars,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    assignments::Assignments,
     scope::Vector{Int},
     roadway::R,
     )::Float64
@@ -79,7 +73,7 @@ function ptilde{F<:Tuple{Vararg{Function}}, R}(
     features::F,
     θ::Vector{Float64},
     vars::Vars,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    assignments::Assignments,
     roadway::R,
     )::Float64
 
@@ -90,7 +84,7 @@ function ptilde{F<:Tuple{Vararg{Function}}, R}(
     features::F,
     θ::Vector{Float64},
     vars::Vars,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    assignments::Assignments,
     scope::Vector{Int},
     roadway::R,
     )::Float64
@@ -107,7 +101,7 @@ end
 """
 function scope(
     var_index::Int,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    assignments::Assignments,
     )
 
     retval = Int[]
@@ -128,7 +122,7 @@ where var_index is the index of the variable (xₖ)
 function inscope(
     var_index::Int,
     assignment_index::Int,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    assignments::Assignments,
     )
 
     assignment = assignments[assignment_index][2]
@@ -157,7 +151,7 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
     features::F, # shared feature functions
     θ::Vector{Float64}, # weights on the shared features
     vars::Vars, # all variables, set to current assignment
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}}, # assignment of index of shared feature → indeces of input vars
+    assignments::Assignments, # assignment of index of shared feature → indeces of input vars
     roadway::R,
     nsamples::Int = 100, # number of Monte Carlo samples
     )::Float64
@@ -202,7 +196,7 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
     features::F, # shared feature functions
     θ::Vector{Float64}, # weights on the shared features
     vars::Vars, # all variables, set to current assignment
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}}, # assignment of index of shared feature → indeces of input vars
+    assignments::Assignments, # assignment of index of shared feature → indeces of input vars
     scopes::Vector{Vector{Int}},
     roadway::R,
     nsamples::Int = 100, # number of Monte Carlo samples

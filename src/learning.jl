@@ -108,8 +108,10 @@ function log_pseudolikelihood_derivative_single{F<:Tuple{Vararg{Function}}, R}(
     f = features[feature_index]
     retval = f(vars, assignment, roadway)
     for var_index in assignment
-        # the negative term, computed via Monte Carlo integration
-        retval -= calc_expectation_x_given_other(feature_index, var_index, features, θ, vars, assignments, scopes, roadway, nsamples)
+        if var_index > 0
+            # the negative term, computed via Monte Carlo integration
+            retval -= calc_expectation_x_given_other(feature_index, var_index, features, θ, vars, assignments, scopes, roadway, nsamples)
+        end
     end
 
     return retval
