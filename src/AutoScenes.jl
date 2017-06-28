@@ -16,6 +16,12 @@ export
     domain_size,
 
     Vars,
+
+    Assignment,
+    Assignments,
+
+    #####################################
+
     FactorGraph,
 
     #####################################

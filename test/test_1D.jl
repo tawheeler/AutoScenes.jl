@@ -156,7 +156,8 @@ assignments = assign_features(features, scene, roadway, vars)
 @test scope(4, assignments) == [2,5,6]
 scopes = [scope(var_index, assignments) for var_index in 1 : length(vars)]
 
-θ = ones(length(features))
+srand(0)
+θ = randn(length(features))
 @test ptilde(features, θ, vars, assignments, roadway) ≈ exp(
         θ[1] * speed(vars, assignments_speed[1], roadway) +
         θ[1] * speed(vars, assignments_speed[2], roadway) +
@@ -167,6 +168,8 @@ scopes = [scope(var_index, assignments) for var_index in 1 : length(vars)]
         θ[2] * delta_speed(vars, assignments_delta_speed[3], roadway) +
         θ[2] * delta_speed(vars, assignments_delta_speed[4], roadway)
     )
+
+θ = ones(length(features))
 
 # E[speed(v)]
 srand(0)

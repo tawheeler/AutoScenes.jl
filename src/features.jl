@@ -40,10 +40,16 @@ function log_ptilde{F<:Tuple{Vararg{Function}}, R}(
     )::Float64
 
     v = 0.0
+    # for tup in assignments
+    #     feature_index = tup[1]
+    #     f = features[feature_index]
+    #     w = θ[feature_index]
+    #     v += 1.0*w # TODO: DEBUG
+    # end
     for (feature_index, assignment) in assignments
         f = features[feature_index]
         w = θ[feature_index]
-        v += f(vars, assignment, roadway)
+        v += w*f(vars, assignment, roadway)
     end
     return v
 end
@@ -61,7 +67,7 @@ function log_ptilde{F<:Tuple{Vararg{Function}}, R}(
         feature_index, assignment = assignments[assignment_index]
         f = features[feature_index]
         w = θ[feature_index]
-        v += f(vars, assignment, roadway)
+        v += w*f(vars, assignment, roadway)
     end
     return v
 end

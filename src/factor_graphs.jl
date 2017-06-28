@@ -3,13 +3,13 @@ A particular instance of a factor graph
 """
 immutable FactorGraph{R}
     vars::Vars
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}} # feature index -> assignment containing variable indices
+    assignments::Assignments # feature index -> assignment containing variable indices
     scopes::Vector{Vector{Int}} # var_index -> scope
     roadway::R
 end
 function FactorGraph{R}(
     vars::Vars,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    assignments::Assignments,
     roadway::R,
     )
 

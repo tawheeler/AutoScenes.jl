@@ -7,7 +7,7 @@ function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
     features::F,
     θ::Vector{Float64},
     vars::Vars,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    assignments::Assignments,
     scopes::Vector{Vector{Int}}, # var_index -> scope
     roadway::R,
     nsamples::Int = 100, # number of Monte Carlo samples
@@ -98,7 +98,7 @@ function log_pseudolikelihood_derivative_single{F<:Tuple{Vararg{Function}}, R}(
     features::F,
     θ::Vector{Float64},
     vars::Vars,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    assignments::Assignments,
     scopes::Vector{Vector{Int}}, # var_index -> scope
     roadway::R,
     nsamples::Int = 100, # number of Monte Carlo samples
@@ -134,7 +134,7 @@ function log_pseudolikelihood_derivative_complete{F<:Tuple{Vararg{Function}}, R}
     features::F,
     θ::Vector{Float64},
     vars::Vars,
-    assignments::Vector{Tuple{Int, Tuple{Vararg{Int}}}},
+    assignments::Assignments,
     scopes::Vector{Vector{Int}}, # var_index -> scope
     roadway::R,
     nsamples::Int = 100, # number of Monte Carlo samples

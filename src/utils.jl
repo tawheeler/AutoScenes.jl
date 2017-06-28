@@ -70,6 +70,9 @@ end
 
 ####
 
+typealias Assignment Tuple{Vararg{Int}}
+typealias Assignments Vector{Tuple{Int, Assignment}} # vector of {feature index + assignment}
+
 # const BOUNDS_ϕ = (deg2rad(-30),deg2rad(30))
 # function get_state_bounds_s(scene::Scene, roadway::Roadway, lead_follow::LeadFollowRelationships, vehicle_index::Int)
 
