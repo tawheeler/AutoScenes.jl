@@ -10,7 +10,7 @@ end
 # f(x) = (x < 0.5)
 function custom1(
     vars::Vars,
-    assignment::Tuple{Int}, # indeces of variables in vars
+    assignment::Assignment, # indeces of variables in vars
     roadway::Void,
     )::Float64
 
@@ -23,13 +23,13 @@ function AutoScenes.assign_feature{F <: typeof(custom1), Void}(
     vars::Vars,
     )
 
-    return Tuple{Int}[(1,)]
+    return Assignment[(1,0)]
 end
 
 # f(x) = (x ≥ 0.5)
 function custom2(
     vars::Vars,
-    assignment::Tuple{Int}, # indeces of variables in vars
+    assignment::Assignment, # indeces of variables in vars
     roadway::Void,
     )::Float64
 
@@ -42,7 +42,7 @@ function AutoScenes.assign_feature{F <: typeof(custom2), Void}(
     vars::Vars,
     )
 
-    return Tuple{Int}[(1,)]
+    return Assignment[(1,0)]
 end
 
 roadway = nothing
@@ -66,17 +66,19 @@ for factorgraph in factorgraphs
 end
 
 srand(0)
-@test isapprox(log_pseudolikelihood(features, θ, factorgraphs[1]), 0.0, atol=1e-8)
+@test isapprox(log_pseudolikelihood(features, θ, factorgraphs[1]), 0.0, atol=1e-8) # 1 - ln(e) = 0
 
 srand(0)
 @test isapprox(log_pseudolikelihood(features, θ, factorgraphs), 0.0, atol=1e-8)
 
 srand(0)
-@test isapprox(log_pseudolikelihood(features, Float64[2,2], factorgraphs), 0.0, atol=1e-8) # should be invariant to scaling
+θ = Float64[2,2]
+@test isapprox(log_pseudolikelihood(features, θ, factorgraphs), 0.0, atol=1e-8) # should be invariant to scaling
 
 srand(0)
 θ = [1/3,2/3]
-@test isapprox(log_pseudolikelihood(features, θ, factorgraphs), 0.0417, atol=1e-4) # better!
+res = (2*1/3 + 4*2/3)/6 - log(1/2*exp(1/3) + 1/2*exp(2/3))
+@test isapprox(log_pseudolikelihood(features, θ, factorgraphs), res, atol=1e-8) # [2θ₁ + 4θ₂]/6 - log[1/2 e^(1/3) + 1/2 e^(2/3)]
 
 srand(0)
 θ = Float64[1,1]

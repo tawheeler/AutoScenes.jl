@@ -24,40 +24,24 @@ function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
             retval += θ[feature_index] * f(vars, assignment, roadway)
         end
 
-        # the negative term, computed via Monte Carlo integration
+        # the negative term, computed via gaussian quadrature
         neg_term = 0.0
         x₀ = vars.values[var_index] # store initial value
         U = Uniform(vars.bounds[var_index])
-        # for k in 1 : nsamples
-        #     Δx = rand(U)
-        #     vars.values[var_index] = x₀ + Δx # set value
-        #     subvalue = 0.0
-        #     for assignment_index in scope
-        #         feature_index, assignment = assignments[assignment_index]
-        #         f = features[feature_index]
-        #         for i in assignment
-        #             subvalue += θ[feature_index] * f(vars, assignment, roadway)
-        #         end
-        #     end
-        #     neg_term += exp(subvalue)
-        # end
-        # vars.values[var_index] = x₀ # reset initial value
-        # neg_term = log(neg_term/nsamples)
 
+        # g is ptilde(x'ⱼ ∣ x₋ⱼ)
         g = Δx -> begin
             vars.values[var_index] = x₀ + Δx # set value
             subvalue = 0.0
             for assignment_index in scope
                 feature_index, assignment = assignments[assignment_index]
                 f = features[feature_index]
-                for i in assignment
-                    subvalue += θ[feature_index] * f(vars, assignment, roadway)
-                end
+                subvalue += θ[feature_index]*f(vars, assignment, roadway)
             end
             return exp(subvalue)
         end
         bound = vars.bounds[var_index]
-        neg_term = log(quadgk(g, bound.Δlo, bound.Δhi, maxevals=nsamples)[1]) # note: only take estimated integral, not the err
+        neg_term = log(quadgk(g, bound.Δlo, bound.Δhi, maxevals=nsamples)[1])
         vars.values[var_index] = x₀ # reset initial value
 
         retval -= neg_term

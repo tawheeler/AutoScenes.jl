@@ -73,7 +73,7 @@ vars = Vars(scene, roadway)
 
 function speed{R}(
     vars::Vars,
-    assignment::Tuple{Int}, # indeces of variables in vars
+    assignment::Assignment, # indeces of variables in vars
     roadway::R,
     )
 
@@ -86,10 +86,10 @@ function AutoScenes.assign_feature{F <: typeof(speed), R}(
     vars::Vars,
     )
 
-    assignments = Tuple{Int}[]
+    assignments = Assignment[]
     for (i, sym) in enumerate(vars.symbols)
         if sym == :v
-            push!(assignments, (i,))
+            push!(assignments, (i,0))
         end
     end
 
@@ -97,7 +97,7 @@ function AutoScenes.assign_feature{F <: typeof(speed), R}(
 end
 
 assignments_speed = assign_feature(speed, scene, roadway, vars)
-@test assignments_speed == [(2,), (4,), (6,), (8,)]
+@test assignments_speed == [(2,0), (4,0), (6,0), (8,0)]
 @test speed(vars, assignments_speed[1], roadway) ≈ 10.0
 @test speed(vars, assignments_speed[2], roadway) ≈ 12.0
 @test speed(vars, assignments_speed[3], roadway) ≈ 10.0
@@ -105,7 +105,7 @@ assignments_speed = assign_feature(speed, scene, roadway, vars)
 
 function delta_speed{R}(
     vars::Vars, # all variables
-    assignment::Tuple{Int,Int}, # indeces of variables in vars
+    assignment::Assignment, # indeces of variables in vars
     roadway::R,
     )
 
@@ -122,7 +122,7 @@ function AutoScenes.assign_feature{F <: typeof(delta_speed)}(
 
     lead_follow = LeadFollowRelationships(scene, roadway)
 
-    assignments = Tuple{Int,Int}[]
+    assignments = Assignment[]
     for (vehicle_index, index_fore) in enumerate(lead_follow.index_fore)
         j_rear = findfirst(vars, vehicle_index, :v)
         j_fore = findfirst(vars, index_fore, :v)
@@ -141,10 +141,10 @@ assignments_delta_speed = assign_feature(delta_speed, scene, roadway, vars)
 
 features = (speed, delta_speed)
 assignments = assign_features(features, scene, roadway, vars)
-@test assignments[1] == (1, (2,))
-@test assignments[2] == (1, (4,))
-@test assignments[3] == (1, (6,))
-@test assignments[4] == (1, (8,))
+@test assignments[1] == (1, (2,0))
+@test assignments[2] == (1, (4,0))
+@test assignments[3] == (1, (6,0))
+@test assignments[4] == (1, (8,0))
 @test assignments[5] == (2, (2,4))
 @test assignments[6] == (2, (4,6))
 @test assignments[7] == (2, (6,8))
