@@ -31,6 +31,8 @@ export
     scope,
     inscope,
 
+    ptilde_denom,
+    prob_x_given_other,
     calc_expectation_x_given_other,
     log_ptilde,
     ptilde,

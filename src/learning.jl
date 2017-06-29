@@ -90,10 +90,11 @@ function log_pseudolikelihood_derivative_single{F<:Tuple{Vararg{Function}}, R}(
 
     feature_index, assignment = assignments[assignment_index]
     f = features[feature_index]
-    retval = f(vars, assignment, roadway)
+    retval = f(vars, assignment, roadway) # the positive term
+    println("pos term: ", retval)
     for var_index in assignment
         if var_index > 0
-            # the negative term, computed via Monte Carlo integration
+            # the negative term
             retval -= calc_expectation_x_given_other(feature_index, var_index, features, θ, vars, assignments, scopes, roadway, nsamples)
         end
     end
@@ -127,13 +128,15 @@ function log_pseudolikelihood_derivative_complete{F<:Tuple{Vararg{Function}}, R}
     )
 
     retval = 0.0
+    tot = 0
     for assignment_index in 1 : length(assignments)
         # for some reason doing it this way does not allocate memory
         if feature_index == assignments[assignment_index][1]
             retval += log_pseudolikelihood_derivative_single(assignment_index, features, θ, vars, assignments, scopes, roadway, nsamples)
+            tot += 1
         end
     end
-    return retval
+    return retval / tot
 end
 function log_pseudolikelihood_derivative_complete{F<:Tuple{Vararg{Function}}, R}(
     feature_index::Int,

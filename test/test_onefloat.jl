@@ -77,12 +77,17 @@ srand(0)
 
 srand(0)
 θ = [1/3,2/3]
-res = (2*1/3 + 4*2/3)/6 - log(1/2*exp(1/3) + 1/2*exp(2/3))
+res = (2*θ[1] + 4*θ[2])/6 - log(1/2*exp(θ[1]) + 1/2*exp(θ[2]))
 @test isapprox(log_pseudolikelihood(features, θ, factorgraphs), res, atol=1e-8) # [2θ₁ + 4θ₂]/6 - log[1/2 e^(1/3) + 1/2 e^(2/3)]
 
 srand(0)
 θ = Float64[1,1]
-@test isapprox(log_pseudolikelihood_derivative_complete(1, features, θ, factorgraphs[1]), 0.5, atol=0.025)
+res = 1/3 - 1/2*exp(θ[1])
+println("wanted: ", res)
+println("got: ", log_pseudolikelihood_derivative_complete(1, features, θ, factorgraphs))
+@test isapprox(log_pseudolikelihood_derivative_complete(1, features, θ, factorgraphs), res, atol=1e-8)
+# 0.5
+# @test isapprox(log_pseudolikelihood_derivative_complete(1, features, θ, factorgraphs[1]), res, atol=1e-8)
 
 ∇ = Array(Float64, length(θ))
 θ = Float64[1,1]

@@ -130,6 +130,32 @@ function inscope(
 end
 
 """
+    Compute ptilde_denom
+
+∫ ptilde(τ, other) d τ
+"""
+function ptilde_denom{F<:Tuple{Vararg{Function}}, R}(
+    j::Int, # index of the variable (in vars) we are running this for
+    features::F, # shared feature functions
+    θ::Vector{Float64}, # weights on the shared features
+    vars::Vars, # all variables, set to current assignment
+    assignment::Assignment, # assignment of index of shared feature → indeces of input vars
+    roadway::R,
+    nsamples::Int = 100, # number of Monte Carlo samples
+    )
+
+    x₀ = vars.values[j] # store initial value
+    bound = vars.bounds[j]
+    retval = quadgk(τ->begin
+                    vars.values[j] = x₀ + τ # set value
+                    return ptilde(features, θ, vars, assignment, roadway)
+                end, bound.Δlo, bound.Δhi, maxevals=nsamples)[1]
+    vars.values[j] = x₀ # reset initial value
+
+    return retval
+end
+
+"""
     Compute E[f(x ∣ other)]
 
     where xⱼ ~ P(⋅ | other)
@@ -139,6 +165,7 @@ vars are the inputs to the feature function set to their present value,
 and i is the index of x, the variable we are running over.
 
 This calculation is performed using Monte Carlo integration:
+(actually, now with gaussian quadrature)
 
     E[f(x ∣ other )] ≈ [∑ f(xⱼ ∣ other) * Wⱼ ] / [∑ Wⱼ]
 
@@ -159,22 +186,39 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
     feature_index, assignment = assignments[i]
     x₀ = vars.values[j] # store initial value
     f = features[feature_index]
-    U = Uniform(vars.bounds[j])
+    # U = Uniform(vars.bounds[j])
 
-
-    W = Δx -> begin
-       vars.values[j] = x₀ + Δx # set value
-       return ptilde(features, θ, vars, assignments, roadway) / pdf(U, Δx)
-    end
-    num = Δx -> begin
-        w = W(Δx)
-        return w*f(vars, assignment, roadway)
-    end
-
-    # unfortunately we compute W values twice
+    # integrate f * pdf
     bound = vars.bounds[j]
-    numerator = quadgk(num, bound.Δlo, bound.Δhi, maxevals=nsamples)[1] # note: only take estimated integral, not the err
-    denominator = quadgk(W, bound.Δlo, bound.Δhi, maxevals=nsamples)[1]
+    pdenom = ptilde_denom(j, features, θ, vars, assignment, roadway, nsamples)
+    retval = quadgk(
+            Δx->begin
+                vars.values[j] = x₀ + Δx # set value
+                fval = f(vars, assignment, roadway)
+                pdfval = ptilde(features, θ, vars, assignment, roadway) / pdenom
+                return fval*pdfval
+            end,
+            bound.Δlo, bound.Δhi, maxevals=nsamples
+        )[1]
+
+    # W = Δx -> begin
+    #    vars.values[j] = x₀ + Δx # set value
+    #    return ptilde(features, θ, vars, assignments, roadway) / pdf(U, Δx)
+    # end
+    # num = Δx -> begin
+    #     vars.values[j] = x₀ + Δx # set value
+    #     w = W(Δx)
+    #     return w*f(vars, assignment, roadway)
+    # end
+
+    # # unfortunately we compute W values twice
+    # bound = vars.bounds[j]
+    # numerator = quadgk(num, bound.Δlo, bound.Δhi, maxevals=nsamples)[1]
+    # denominator = quadgk(W, bound.Δlo, bound.Δhi, maxevals=nsamples)[1]
+
+    # println("num: ", numerator)
+    # println("den: ", denominator)
+    # println("ratio: ", numerator/denominator)
 
     # numerator = 0.0
     # denominator = 0.0
