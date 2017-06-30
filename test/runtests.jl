@@ -1,7 +1,12 @@
 using Base.Test
 using AutomotiveDrivingModels
 using AutoScenes
+using NBInclude
 
-include("test_onefloat.jl")
-include("test_1D.jl")
+let
+    nbinclude(Pkg.dir("AutoScenes", "docs", "OneFloat.ipynb"))
+end
+
+
+# include("test_1D.jl")
 

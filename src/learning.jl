@@ -71,7 +71,7 @@ function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
     for factorgraph in factorgraphs
         retval += log_pseudolikelihood(features, θ, factorgraph, nsamples)
     end
-    return retval / length(factorgraphs)
+    return retval
 end
 
 """
@@ -94,7 +94,8 @@ function log_pseudolikelihood_derivative_single{F<:Tuple{Vararg{Function}}, R}(
     for var_index in assignment
         if var_index > 0
             # the negative term
-            neg_term = calc_expectation_x_given_other(feature_index, var_index, features, θ, vars, assignments, scopes, roadway, nsamples)
+            # neg_term = calc_expectation_x_given_other(feature_index, var_index, features, θ, vars, assignments, scopes, roadway, nsamples)
+            neg_term = calc_expectation_x_given_other(feature_index, var_index, features, θ, vars, assignments, roadway, nsamples)
             retval -= neg_term
         end
     end
@@ -156,7 +157,7 @@ function log_pseudolikelihood_derivative_complete{F<:Tuple{Vararg{Function}}, R}
     )::Float64
 
     retval = 0.0
-    # TODO: parallelize
+    # TODO: parallelize note that we may need multiple copies since we mutate vars
     for factorgraph in factorgraphs
         Δ = log_pseudolikelihood_derivative_complete(feature_index, features, θ, factorgraph, nsamples)
         retval += Δ

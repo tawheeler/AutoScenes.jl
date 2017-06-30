@@ -141,7 +141,7 @@ function ptilde_denom{F<:Tuple{Vararg{Function}}, R}(
     vars::Vars, # all variables, set to current assignment
     assignments::Assignments, # assignment of index of shared feature → indeces of input vars
     roadway::R,
-    nsamples::Int = 100, # number of Monte Carlo samples
+    nsamples::Int = 100, # number of quadrature samples
     )
 
     x₀ = vars.values[j] # store initial value
@@ -186,7 +186,6 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
     feature_index, assignment = assignments[i]
     x₀ = vars.values[j] # store initial value
     f = features[feature_index]
-    # U = Uniform(vars.bounds[j])
 
     # integrate f * pdf
     bound = vars.bounds[j]
@@ -201,38 +200,7 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
             bound.Δlo, bound.Δhi, maxevals=nsamples
         )[1]
 
-    # W = Δx -> begin
-    #    vars.values[j] = x₀ + Δx # set value
-    #    return ptilde(features, θ, vars, assignments, roadway) / pdf(U, Δx)
-    # end
-    # num = Δx -> begin
-    #     vars.values[j] = x₀ + Δx # set value
-    #     w = W(Δx)
-    #     return w*f(vars, assignment, roadway)
-    # end
-
-    # # unfortunately we compute W values twice
-    # bound = vars.bounds[j]
-    # numerator = quadgk(num, bound.Δlo, bound.Δhi, maxevals=nsamples)[1]
-    # denominator = quadgk(W, bound.Δlo, bound.Δhi, maxevals=nsamples)[1]
-
-    # println("num: ", numerator)
-    # println("den: ", denominator)
-    # println("ratio: ", numerator/denominator)
-
-    # numerator = 0.0
-    # denominator = 0.0
-    # for k in 1 : nsamples
-        # Δx = rand(U)
-        # vars.values[j] = x₀ + Δx # set value
-        # W = ptilde(features, θ, vars, assignments, roadway) / pdf(U, Δx)
-        # numerator += W*f(vars, assignment, roadway) # unfortunately, this is computed twice
-        # denominator += W
-    # end
-
     vars.values[j] = x₀ # reset initial value
-
-    # return numerator/denominator
 
     return retval
 end
@@ -250,19 +218,34 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
 
     feature_index, assignment = assignments[i]
     x₀ = vars.values[j] # store initial value
-    U = Uniform(vars.bounds[j])
+    # U = Uniform(vars.bounds[j])
     f = features[feature_index]
     scope = scopes[j] # scope of j
 
-    numerator = 0.0
-    denominator = 0.0
-    for k in 1 : nsamples
-        Δx = rand(U)
-        vars.values[j] = x₀ + Δx # set value
-        W = ptilde(features, θ, vars, assignments, roadway) / pdf(U, Δx)
-        numerator += W*f(vars, assignment, roadway) # unfortunately, this is computed twice
-        denominator += W
-    end
+    warn("scope not used, must implement this properly!")
+
+    # # integrate f * pdf
+    # bound = vars.bounds[j]
+    # pdenom = ptilde_denom(j, features, θ, vars, assignments, roadway, nsamples)
+    # retval = quadgk(
+    #         Δx->begin
+    #             vars.values[j] = x₀ + Δx # set value
+    #             fval = f(vars, assignment, roadway)
+    #             pdfval = ptilde(features, θ, vars, assignments, roadway) / pdenom
+    #             return fval*pdfval
+    #         end,
+    #         bound.Δlo, bound.Δhi, maxevals=nsamples
+    #     )[1]
+
+    # numerator = 0.0
+    # denominator = 0.0
+    # for k in 1 : nsamples
+    #     Δx = rand(U)
+    #     vars.values[j] = x₀ + Δx # set value
+    #     W = ptilde(features, θ, vars, assignments, roadway) / pdf(U, Δx)
+    #     numerator += W*f(vars, assignment, roadway) # unfortunately, this is computed twice
+    #     denominator += W
+    # end
 
     vars.values[j] = x₀ # reset initial value
 
