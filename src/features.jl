@@ -139,7 +139,7 @@ function ptilde_denom{F<:Tuple{Vararg{Function}}, R}(
     features::F, # shared feature functions
     θ::Vector{Float64}, # weights on the shared features
     vars::Vars, # all variables, set to current assignment
-    assignment::Assignment, # assignment of index of shared feature → indeces of input vars
+    assignments::Assignments, # assignment of index of shared feature → indeces of input vars
     roadway::R,
     nsamples::Int = 100, # number of Monte Carlo samples
     )
@@ -148,7 +148,7 @@ function ptilde_denom{F<:Tuple{Vararg{Function}}, R}(
     bound = vars.bounds[j]
     retval = quadgk(τ->begin
                     vars.values[j] = x₀ + τ # set value
-                    return ptilde(features, θ, vars, assignment, roadway)
+                    return ptilde(features, θ, vars, assignments, roadway)
                 end, bound.Δlo, bound.Δhi, maxevals=nsamples)[1]
     vars.values[j] = x₀ # reset initial value
 
@@ -190,12 +190,12 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
 
     # integrate f * pdf
     bound = vars.bounds[j]
-    pdenom = ptilde_denom(j, features, θ, vars, assignment, roadway, nsamples)
+    pdenom = ptilde_denom(j, features, θ, vars, assignments, roadway, nsamples)
     retval = quadgk(
             Δx->begin
                 vars.values[j] = x₀ + Δx # set value
                 fval = f(vars, assignment, roadway)
-                pdfval = ptilde(features, θ, vars, assignment, roadway) / pdenom
+                pdfval = ptilde(features, θ, vars, assignments, roadway) / pdenom
                 return fval*pdfval
             end,
             bound.Δlo, bound.Δhi, maxevals=nsamples
@@ -232,7 +232,9 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
 
     vars.values[j] = x₀ # reset initial value
 
-    return numerator/denominator
+    # return numerator/denominator
+
+    return retval
 end
 function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
     i::Int, # index of the feature (in assignments) we are running this for

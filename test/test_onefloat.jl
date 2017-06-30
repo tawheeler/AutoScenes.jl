@@ -82,12 +82,37 @@ res = (2*θ[1] + 4*θ[2])/6 - log(1/2*exp(θ[1]) + 1/2*exp(θ[2]))
 
 srand(0)
 θ = Float64[1,1]
-res = 1/3 - 1/2*exp(θ[1])
-println("wanted: ", res)
-println("got: ", log_pseudolikelihood_derivative_complete(1, features, θ, factorgraphs))
-@test isapprox(log_pseudolikelihood_derivative_complete(1, features, θ, factorgraphs), res, atol=1e-8)
-# 0.5
-# @test isapprox(log_pseudolikelihood_derivative_complete(1, features, θ, factorgraphs[1]), res, atol=1e-8)
+res = 1 - 1/2*exp(θ[1])/e
+@test isapprox(log_pseudolikelihood_derivative_complete(1, features, θ, factorgraphs[1]), res, atol=0.021)
+
+srand(0)
+θ = Float64[1,1]
+res = 1/3 - 1/2*exp(θ[1])/e
+# println("wanted: ", res)
+# println("got: ", log_pseudolikelihood_derivative_complete(1, features, θ, factorgraphs))
+@test isapprox(log_pseudolikelihood_derivative_complete(1, features, θ, factorgraphs), res, atol=1e-2)
+
+srand(0)
+θ = Float64[1,1]
+res = 2/3 - 1/2*exp(θ[2])/e
+# println("wanted: ", res)
+# println("got: ", log_pseudolikelihood_derivative_complete(2, features, θ, factorgraphs))
+@test isapprox(log_pseudolikelihood_derivative_complete(2, features, θ, factorgraphs), res, atol=1e-2)
+
+srand(0)
+θ = Float64[1/3,2/3]
+res = 1/3 - 1/2*exp(θ[1])/(quadgk(x->exp(θ[1]), 0, 0.5)[1] + quadgk(x->exp(θ[2]), 0.5, 1.0)[1])
+# println("wanted: ", res)
+# println("got: ", log_pseudolikelihood_derivative_complete(1, features, θ, factorgraphs))
+@test isapprox(log_pseudolikelihood_derivative_complete(1, features, θ, factorgraphs), res, atol=1e-3)
+
+srand(0)
+θ = Float64[1/3,2/3]
+res = 2/3 - 1/2*exp(θ[2])/(quadgk(x->exp(θ[1]), 0, 0.5)[1] + quadgk(x->exp(θ[2]), 0.5, 1.0)[1])
+# println("wanted: ", res)
+# println("got: ", log_pseudolikelihood_derivative_complete(2, features, θ, factorgraphs))
+@test isapprox(log_pseudolikelihood_derivative_complete(2, features, θ, factorgraphs), res, atol=1e-3)
+
 
 ∇ = Array(Float64, length(θ))
 θ = Float64[1,1]
