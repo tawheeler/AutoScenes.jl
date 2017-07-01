@@ -16,35 +16,19 @@ function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
     retval = 0.0
     # loop through variables
     for (var_index, scope) in enumerate(scopes)
+        if !isempty(scope)
 
-        # the positive term
-        for assignment_index in scope
-            feature_index, assignment = assignments[assignment_index]
-            f = features[feature_index]
-            retval += θ[feature_index] * f(vars, assignment, roadway)
-        end
-
-        # the negative term, computed via gaussian quadrature
-        neg_term = 0.0
-        x₀ = vars.values[var_index] # store initial value
-        U = Uniform(vars.bounds[var_index])
-
-        # g is ptilde(x'ⱼ ∣ x₋ⱼ)
-        g = Δx -> begin
-            vars.values[var_index] = x₀ + Δx # set value
-            subvalue = 0.0
+            # the positive term
             for assignment_index in scope
                 feature_index, assignment = assignments[assignment_index]
                 f = features[feature_index]
-                subvalue += θ[feature_index]*f(vars, assignment, roadway)
+                retval += θ[feature_index] * f(vars, assignment, roadway)
             end
-            return exp(subvalue)
-        end
-        bound = vars.bounds[var_index]
-        neg_term = log(quadgk(g, bound.Δlo, bound.Δhi, maxevals=nsamples)[1])
-        vars.values[var_index] = x₀ # reset initial value
 
-        retval -= neg_term
+            # the negative term, computed via gaussian quadrature
+            neg_term = log(ptilde_denom(var_index, features, θ, vars, assignments, scope, roadway))
+            retval -= neg_term
+        end
     end
 
     return retval
@@ -90,13 +74,13 @@ function log_pseudolikelihood_derivative_single{F<:Tuple{Vararg{Function}}, R}(
 
     feature_index, assignment = assignments[assignment_index]
     f = features[feature_index]
-    retval = f(vars, assignment, roadway) # the positive term
+    pos_term = f(vars, assignment, roadway) # the positive term
+    retval = 0.0
     for var_index in assignment
         if var_index > 0
             # the negative term
-            # neg_term = calc_expectation_x_given_other(feature_index, var_index, features, θ, vars, assignments, scopes, roadway, nsamples)
-            neg_term = calc_expectation_x_given_other(feature_index, var_index, features, θ, vars, assignments, roadway, nsamples)
-            retval -= neg_term
+            neg_term = calc_expectation_x_given_other(assignment_index, var_index, features, θ, vars, assignments, roadway, nsamples)
+            retval += pos_term - neg_term
         end
     end
 
@@ -132,7 +116,8 @@ function log_pseudolikelihood_derivative_complete{F<:Tuple{Vararg{Function}}, R}
     for assignment_index in 1 : length(assignments)
         # for some reason doing it this way does not allocate memory
         if feature_index == assignments[assignment_index][1]
-            retval += log_pseudolikelihood_derivative_single(assignment_index, features, θ, vars, assignments, scopes, roadway, nsamples)
+            Δ = log_pseudolikelihood_derivative_single(assignment_index, features, θ, vars, assignments, scopes, roadway, nsamples)
+            retval += Δ
         end
     end
     return retval
@@ -161,7 +146,6 @@ function log_pseudolikelihood_derivative_complete{F<:Tuple{Vararg{Function}}, R}
     for factorgraph in factorgraphs
         Δ = log_pseudolikelihood_derivative_complete(feature_index, features, θ, factorgraph, nsamples)
         retval += Δ
-        # println("Δ: ", Δ)
     end
     # retval = @parallel (+) for factorgraph in factorgraphs
     #     retval += log_pseudolikelihood_derivative_complete(feature_index, features, θ, factorgraph, nsamples)

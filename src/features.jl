@@ -154,6 +154,27 @@ function ptilde_denom{F<:Tuple{Vararg{Function}}, R}(
 
     return retval
 end
+function ptilde_denom{F<:Tuple{Vararg{Function}}, R}(
+    j::Int, # index of the variable (in vars) we are running this for
+    features::F, # shared feature functions
+    θ::Vector{Float64}, # weights on the shared features
+    vars::Vars, # all variables, set to current assignment
+    assignments::Assignments, # assignment of index of shared feature → indeces of input vars
+    scope::Vector{Int},
+    roadway::R,
+    nsamples::Int = 100, # number of quadrature samples
+    )
+
+    x₀ = vars.values[j] # store initial value
+    bound = vars.bounds[j]
+    retval = quadgk(τ->begin
+                    vars.values[j] = x₀ + τ # set value
+                    return ptilde(features, θ, vars, assignments, scope, roadway)
+                end, bound.Δlo, bound.Δhi, maxevals=nsamples)[1]
+    vars.values[j] = x₀ # reset initial value
+
+    return retval
+end
 
 """
     Compute E[f(x ∣ other)]
@@ -205,7 +226,7 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
     return retval
 end
 function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
-    i::Int, # index of the feature (in assignments) we are running this for
+    i::Int, # index of the (θ,f) pair in assignments
     j::Int, # index of the variable (in vars) we are running this for
     features::F, # shared feature functions
     θ::Vector{Float64}, # weights on the shared features

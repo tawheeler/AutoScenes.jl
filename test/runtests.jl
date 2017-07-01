@@ -7,6 +7,7 @@ let
     nbinclude(Pkg.dir("AutoScenes", "docs", "OneFloat.ipynb"))
 end
 
-
-# include("test_1D.jl")
+let
+    nbinclude(Pkg.dir("AutoScenes", "docs", "1DScene.ipynb"))
+end
 
