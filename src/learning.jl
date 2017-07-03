@@ -79,7 +79,7 @@ function log_pseudolikelihood_derivative_single{F<:Tuple{Vararg{Function}}, R}(
     for var_index in assignment
         if var_index > 0
             # the negative term
-            neg_term = calc_expectation_x_given_other(assignment_index, var_index, features, θ, vars, assignments, roadway, nsamples)
+            neg_term = calc_expectation_x_given_other(assignment_index, var_index, features, θ, vars, assignments, scopes, roadway, nsamples)
             retval += pos_term - neg_term
         end
     end

@@ -239,36 +239,22 @@ function calc_expectation_x_given_other{F<:Tuple{Vararg{Function}}, R}(
 
     feature_index, assignment = assignments[i]
     x₀ = vars.values[j] # store initial value
-    # U = Uniform(vars.bounds[j])
     f = features[feature_index]
-    scope = scopes[j] # scope of j
 
-    warn("scope not used, must implement this properly!")
-
-    # # integrate f * pdf
-    # bound = vars.bounds[j]
-    # pdenom = ptilde_denom(j, features, θ, vars, assignments, roadway, nsamples)
-    # retval = quadgk(
-    #         Δx->begin
-    #             vars.values[j] = x₀ + Δx # set value
-    #             fval = f(vars, assignment, roadway)
-    #             pdfval = ptilde(features, θ, vars, assignments, roadway) / pdenom
-    #             return fval*pdfval
-    #         end,
-    #         bound.Δlo, bound.Δhi, maxevals=nsamples
-    #     )[1]
-
-    # numerator = 0.0
-    # denominator = 0.0
-    # for k in 1 : nsamples
-    #     Δx = rand(U)
-    #     vars.values[j] = x₀ + Δx # set value
-    #     W = ptilde(features, θ, vars, assignments, roadway) / pdf(U, Δx)
-    #     numerator += W*f(vars, assignment, roadway) # unfortunately, this is computed twice
-    #     denominator += W
-    # end
+    bound = vars.bounds[j]
+    scope = scopes[j]
+    pdenom = ptilde_denom(j, features, θ, vars, assignments, scope, roadway, nsamples)
+    retval = quadgk(
+            Δx->begin
+                vars.values[j] = x₀ + Δx # set value
+                fval = f(vars, assignment, roadway)
+                pdfval = ptilde(features, θ, vars, assignments, scope, roadway) / pdenom
+                return fval*pdfval
+            end,
+            bound.Δlo, bound.Δhi, maxevals=nsamples
+        )[1]
 
     vars.values[j] = x₀ # reset initial value
 
-    return numerator/denominator
+    return retval
 end
