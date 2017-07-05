@@ -39,37 +39,30 @@ export
 
 
     #####################################
-    # SceneStructure
-
-
-    #####################################
     # subscene_extraction
 
     extract_subscene!,
     get_num_vehicles_upstream_in_and_downstream,
 
-    # is_in_bounds,
-    # is_there_longitudinal_room,
-    # is_scene_well_behaved,
-    # pull_subscene,
-
-    # #####################################
-    # # learning
+    #####################################
+    # learning
 
     log_pseudolikelihood,
     log_pseudolikelihood_derivative_single,
     log_pseudolikelihood_derivative_complete,
-    log_pseudolikelihood_gradient!
+    log_pseudolikelihood_gradient!,
 
-    # #####################################
-    # # Batch Sampler
+    #####################################
+    # Batch Iterator
 
-    # BatchSampler,
+    BatchIterator,
 
-    # restart!,
-    # next_index!,
-    # epoch_size,
-    # get_n_samples_used,
+    epoch_size,
+    samples_so_far,
+    current_epoch,
+    get_sample,
+    next_sample!,
+    pull_batch!
 
     # #####################################
     # # SGA
@@ -98,11 +91,9 @@ export
 include("utils.jl")
 include("factor_graphs.jl")
 include("features.jl")
-# include("scene_structures.jl")
 include("subscene_extraction.jl")
-# include("structure_dataset.jl")
-# include("scenedataset.jl")
 include("learning.jl")
+include("batch_iterator.jl")
 # include("stochastic_gradient_ascent_params.jl")
 # include("sampling.jl")
 # include("io.jl")
