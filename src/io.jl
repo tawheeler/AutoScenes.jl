@@ -1,30 +1,25 @@
-# function Base.write(io::IO, ϕ::SharedFactor)
-#     println(io, "template:")
-#     println(io, "\t", ϕ.template.form)
-#     print(io, "\t")
-#     for v in ϕ.template.values
-#         @printf(io, "%.16e  ", v)
-#     end
-#     print(io, "\n")
-#     print(io, "\t")
-#     for v in ϕ.template.normals
-#         @printf(io, "%.16e %.16e  ", v.μ, v.σ)
-#     end
-#     print(io, "\n")
+struct FactorModel{F<:Tuple{Vararg{Function}}}
+    features::F
+    weights::Vector{Float64}
+end
 
-#     println(io, "instances: ", length(ϕ.instances))
-#     for (instance, w) in zip(ϕ.instances, ϕ.weights)
-#         @printf(io, "\t %.16e %d %d ", w, instance.form, instance.index)
-#         for e in instance.exponents
-#             print(io, " ", e)
-#         end
-#         println(io, "")
-#     end
-# end
-# function Base.write(io::IO, factors::Vector{SharedFactor})
-#     println(io, "Shared Factors")
-#     println(io, length(factors))
-#     for ϕ in factors
-#         write(io, ϕ)
-#     end
-# end
+function Base.write(io::IO, ::MIME"text/plain", model::FactorModel)
+    for (i,f) in enumerate(model.features)
+        print(io, f, i == length(model.features) ? "\n" : " ")
+    end
+    for (i,w) in enumerate(model.weights)
+        print(io, w, i == length(model.weights) ? "\n" : " ")
+    end
+    return nothing
+end
+
+macro load_factor_model(filename)
+    ex = quote
+        return open($filename, "r") do io
+            features = Tuple(eval(parse(str)) for str in split(readline(io)))
+            weights = [parse(Float64, s) for s in split(readline(io))]
+            FactorModel(features, weights)
+        end
+    end
+    return esc(ex)
+end

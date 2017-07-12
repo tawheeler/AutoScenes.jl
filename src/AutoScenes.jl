@@ -63,7 +63,7 @@ export
     current_epoch,
     get_sample,
     next_sample!,
-    pull_batch!
+    pull_batch!,
 
     # #####################################
     # # SGA
@@ -89,6 +89,11 @@ export
     # metropolis_hastings!,
     # sample
 
+    ##################################
+    # io
+
+    FactorModel
+
 include("utils.jl")
 include("factor_graphs.jl")
 include("features.jl")
@@ -97,7 +102,7 @@ include("learning.jl")
 include("batch_iterator.jl")
 # include("stochastic_gradient_ascent_params.jl")
 # include("sampling.jl")
-# include("io.jl")
+include("io.jl")
 
 # include("viz/viz_scene_structures.jl")
 
