@@ -82,7 +82,7 @@ function calc_pseudolikelihood_gradient(form::Int, feature_index::Int, batch_siz
 end
 
 function alloc_grad_velocities(dset::SceneStructureDataset)
-    retval = Array(Vector{Float64}, length(dset.factors))
+    retval = Array{Vector{Float64}}(length(dset.factors))
     for (i, ϕ) in enumerate(dset.factors)
         retval[i] = zeros(Float64, length(ϕ.instances))
     end

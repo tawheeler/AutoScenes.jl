@@ -1,7 +1,7 @@
 """
 A particular instance of a factor graph
 """
-immutable FactorGraph{R}
+struct FactorGraph{R}
     vars::Vars
     assignments::Assignments # feature index -> assignment containing variable indices
     scopes::Vector{Vector{Int}} # var_index -> scope

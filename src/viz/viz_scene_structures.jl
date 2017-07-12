@@ -79,7 +79,7 @@
 # end
 # function AutoViz.render!(rendermodel::RenderModel, poly::ConvexPolygon, color::Colorant, line_width::Real)
 
-#     pts = Array(Float64, 2, length(poly))
+#     pts = Array{Float64}(2, length(poly))
 #     for (i,p) in enumerate(poly)
 #         pts[1,i] = p.x
 #         pts[2,i] = p.y

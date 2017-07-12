@@ -1,4 +1,4 @@
-type LeadFollowRelationships
+struct LeadFollowRelationships
     index_fore::Vector{Int}
     index_rear::Vector{Int}
 end
@@ -40,7 +40,7 @@ end
 
 ####
 
-immutable StateBounds
+struct StateBounds
     Δlo::Float64
     Δhi::Float64
 end
@@ -50,7 +50,7 @@ Distributions.Uniform(bounds::StateBounds) = Uniform(bounds.Δlo, bounds.Δhi)
 ###
 
 # Variable instance for a particular scene
-immutable Vars
+struct Vars
     values::Vector{Float64}
     bounds::Vector{StateBounds}
     symbols::Vector{Symbol} # symbol associated with each variable; for convenience [:v, :ϕ, ...]
@@ -70,10 +70,10 @@ end
 
 ####
 
-# typealias Assignment Tuple{Vararg{Int}}
-# typealias Assignment Union{Tuple{Int}, Tuple{Int,Int}}
-typealias Assignment Tuple{Int,Int}
-typealias Assignments Vector{Tuple{Int, Assignment}} # vector of {feature index + assignment}
+# const Assignment = Tuple{Vararg{Int}}
+# const Assignment = Union{Tuple{Int}, Tuple{Int,Int}}
+const Assignment = Tuple{Int,Int}
+const Assignments = Vector{Tuple{Int, Assignment}} # vector of {feature index + assignment}
 
 # const BOUNDS_ϕ = (deg2rad(-30),deg2rad(30))
 # function get_state_bounds_s(scene::Scene, roadway::Roadway, lead_follow::LeadFollowRelationships, vehicle_index::Int)

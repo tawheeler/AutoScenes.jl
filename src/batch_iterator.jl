@@ -1,4 +1,4 @@
-type BatchIterator
+mutable struct BatchIterator
     perm::Array{Int} # permutation over all samples in the dataset
     i::Int # running count of number of samples pulled
 end

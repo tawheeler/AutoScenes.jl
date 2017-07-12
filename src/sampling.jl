@@ -13,7 +13,7 @@ type SceneGenerator
         factors::Vector{SharedFactor},
         propsal_distribution::MHTransition,
         burnin::Int;
-        Δ_propose::Vector{Float64}=Array(Float64, 4),
+        Δ_propose::Vector{Float64}=Array{Float64}(4),
         mem::CPAMemory=CPAMemory(),
         )
 
@@ -156,7 +156,7 @@ function metropolis_hastings_step!(
     roadway::Roadway,
     factors::Vector{SharedFactor},
     MH_transition::MHTransition,
-    Δ_propose::Vector{Float64} = Array(Float64, 4), # preallocated memory
+    Δ_propose::Vector{Float64} = Array{Float64}(4), # preallocated memory
     mem::CPAMemory = CPAMemory(),
     rec::SceneRecord = SceneRecord(1, NaN),
     )
@@ -203,7 +203,7 @@ function metropolis_hastings!(
     factors::Vector{SharedFactor},
     propsal_distribution::MHTransition,
     n_steps::Int,
-    Δ_propose::Vector{Float64}=Array(Float64, 4), # preallocated memory
+    Δ_propose::Vector{Float64}=Array{Float64}(4), # preallocated memory
     mem::CPAMemory=CPAMemory(),
     rec::SceneRecord=SceneRecord(1, NaN),
     )

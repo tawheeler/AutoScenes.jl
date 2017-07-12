@@ -6,6 +6,7 @@ using AutomotiveDrivingModels
 using AutoViz
 using Distributions
 using Vec
+import QuadGK: quadgk
 
 export
 
