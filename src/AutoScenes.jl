@@ -13,6 +13,7 @@ export
     #####################################
     FactorGraph,
     FactorModel,
+    FactorGraphSceneGenerator,
 
     LeadFollowRelationships,
 
@@ -66,12 +67,10 @@ export
     #####################################
     # sampling
 
-    # SceneGenerator,
-
     # adheres_to_structure,
     # calc_acceptance_probability,
-    # metropolis_hastings_step!,
-    # metropolis_hastings!,
+    metropolis_hastings_step!,
+    metropolis_hastings!
     # sample
 
 

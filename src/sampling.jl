@@ -3,7 +3,7 @@ struct FactorGraphSceneGenerator{F}
     Ts::Dict{Symbol, Normal{Float64}} # normal transition distributions for each variable type
     burnin::Int # number of burn-in steps
 end
-Base.show(io::IO, sg::SceneGenerator) = print(io, "SceneGenerator(burnin=", sg.burnin, ")")
+Base.show(io::IO, sg::FactorGraphSceneGenerator) = print(io, "FactorGraphSceneGenerator(burnin=", sg.burnin, ")")
 
 """
 Sample a transition for all variables from the transition proposal distribution,
@@ -24,12 +24,13 @@ function metropolis_hastings_step!{F,R}(
     logP_a2b = 0.0
     logP_b2a = 0.0
     for i in 1 : length(vars)
+        sym = vars.symbols[i]
         bounds = vars.bounds[i]
-        Pa2b = Truncated(vars.values[i] + a[i], bounds.Δlo + a[i], bounds.Δhi - a[i])
+        Pa2b = Truncated(gen.Ts[sym], bounds.Δlo - a[i], bounds.Δhi - a[i])
         Δ = rand(Pa2b) # proposed transition for this variable
         logP_a2b += logpdf(Pa2b, Δ)
         b[i] = a[i] + Δ
-        Pb2a = Truncated(vars.values[i] + b[i], bounds.Δlo + b[i], bounds.Δhi - b[i])
+        Pb2a = Truncated(gen.Ts[sym], bounds.Δlo - b[i], bounds.Δhi - b[i])
         logP_b2a += logpdf(Pb2a, -Δ)
         @assert !isinf(logP_a2b)
         @assert !isinf(logP_b2a)
@@ -55,7 +56,7 @@ function metropolis_hastings_step!{F,R}(
 
     return (a, logPtilde_a)
 end
-function metropolis_hastings!(
+function metropolis_hastings!{F,R}(
     gen::FactorGraphSceneGenerator{F},
     factorgraph::FactorGraph{R};
 
@@ -67,13 +68,13 @@ function metropolis_hastings!(
         logPtilde_a = log_ptilde(gen.model.features, gen.model.weights, factorgraph.vars,
             factorgraph.assignments, factorgraph.roadway)
         factorgraph.vars.values .-= a
-        return logPtilde_a
+        logPtilde_a
     end,
     )
 
     for i in 1 : n_steps
-        (a, logPtilde_a) = metropolis_hastings_step!(gen, factorgraph, a, b, logPtilde_b)
+        (a, logPtilde_a) = metropolis_hastings_step!(gen, factorgraph, a, b, logPtilde_a)
     end
 
-    return factorgraph
+    return a
 end
