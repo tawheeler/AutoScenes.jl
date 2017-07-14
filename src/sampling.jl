@@ -1,242 +1,79 @@
-typealias MHTransition Tuple{Normal, Normal, Normal, Normal} # {Δs,Δt,Δv,Δϕ}
-
-type SceneGenerator
-    factors::Vector{SharedFactor}
-    propsal_distribution::MHTransition
+struct FactorGraphSceneGenerator{F}
+    model::FactorModel{F}
+    Ts::Dict{Symbol, Normal{Float64}} # normal transition distributions for each variable type
     burnin::Int # number of burn-in steps
-
-    Δ_propose::Vector{Float64}
-    mem::CPAMemory
-    rec::SceneRecord
-
-    function SceneGenerator(
-        factors::Vector{SharedFactor},
-        propsal_distribution::MHTransition,
-        burnin::Int;
-        Δ_propose::Vector{Float64}=Array{Float64}(4),
-        mem::CPAMemory=CPAMemory(),
-        )
-
-        retval = new()
-        retval.factors = factors
-        retval.propsal_distribution = propsal_distribution
-        retval.burnin = burnin
-        retval.Δ_propose = Δ_propose
-        retval.mem = mem
-        retval.rec = SceneRecord(1, NaN)
-        retval
-    end
 end
 Base.show(io::IO, sg::SceneGenerator) = print(io, "SceneGenerator(burnin=", sg.burnin, ")")
 
-function get_shifted_state(
-    scene::Scene,
-    structure::SceneStructure,
-    roadway::Roadway,
-    vehicle_index::Int,
-    Δ_propose::Vector{Float64}, # Δs,Δt,Δv,Δϕ
+"""
+Sample a transition for all variables from the transition proposal distribution,
+and then accept according to the acceptance probability.
+"""
+function metropolis_hastings_step!{F,R}(
+    gen::FactorGraphSceneGenerator{F},
+    factorgraph::FactorGraph{R},
+    a::Vector{Float64}, # a set of deviations from factorgraph.vars.values
+    b::Vector{Float64}, # candidate deviations from factorgraph.vars.values
+    logPtilde_a::Float64, # precomputed
     )
 
-    Δs = Δ_propose[1]
-    Δt = Δ_propose[2]
-    Δv = Δ_propose[3]
-    Δϕ = Δ_propose[4]
+    vars = factorgraph.vars
 
-    state = scene[vehicle_index].state
-    move_along(state, roadway, Δs,
-               ϕ₂=state.posF.ϕ + Δϕ,
-               t₂=state.posF.t + Δt,
-               v₂=state.v + Δv)
-end
-function draw_active_vehicle_index(scene::Scene, structure::SceneStructure)
-    active_veh_index = rand(1:length(structure.active_vehicles))
-    for i in 1 : length(scene.vehicles)
-        if in(i, structure.active_vehicles)
-            active_veh_index -= 1
-            if active_veh_index == 0
-                return i
-            end
-        end
-    end
-    error("active_veh_index invalid")
-    0
-end
-
-function evaluate_dot!(
-    structure::SceneStructure,
-    vehicle_index::Int,
-    factors::Vector{SharedFactor},
-    scene::Scene,
-    roadway::Roadway,
-    rec::SceneRecord,
-    )
-
-    # Only evaluate the factors of which vehicle_index is a member
-    # NOTE: this will call extract!
-
-    retval = 0.0
-    for i in 1 : length(structure.factor_assignments)
-
-        fa = structure.factor_assignments[i]
-        if vehicle_index in fa.vehicle_indeces
-            ϕ = factors[fa.form]
-            extract!(ϕ, scene, roadway, fa.vehicle_indeces)
-            retval += evaluate_dot(ϕ)
-        end
-    end
-    retval
-end
-
-function calc_acceptance_probability(
-    state_propose::VehicleState,
-    vehicle_index::Int,
-    factors::Vector{SharedFactor},
-    scene::Scene,
-    rec::SceneRecord,
-    structure::SceneStructure,
-    roadway::Roadway,
-    mem::CPAMemory,
-    MH_transition::MHTransition,
-    logprob_trans::Float64,
-    Δ_propose::Vector{Float64},
-    )
-
-    state_orig = scene[vehicle_index].state
-    scene[vehicle_index].state = state_propose
-
-    logprob_rev_trans = 0.0
-    Δlo, Δhi = get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
-    if Δlo > 0.0 || Δhi < 0.0 || Δlo == Δhi
-        scene[vehicle_index].state = state_orig
-        return 0.0
-    end
-    logprob_rev_trans += logpdf(Truncated(MH_transition[1], Δlo, Δhi), -Δ_propose[1])
-
-    update!(rec, scene)
-    Δlo, Δhi = get_relative_variable_bounds_t(rec, roadway, vehicle_index)
-    if Δlo > 0.0 || Δhi < 0.0 || Δlo == Δhi
-        scene[vehicle_index].state = state_orig
-        return 0.0
-    end
-    logprob_rev_trans += logpdf(Truncated(MH_transition[2], Δlo, Δhi), -Δ_propose[2])
-
-    Δlo, Δhi = get_relative_variable_bounds_v(scene, vehicle_index)
-    if Δlo > 0.0 || Δhi < 0.0 || Δlo == Δhi
-        scene[vehicle_index].state = state_orig
-        return 0.0
-    end
-    logprob_rev_trans += logpdf(Truncated(MH_transition[3], Δlo, Δhi), -Δ_propose[3])
-
-    Δlo, Δhi = get_relative_variable_bounds_ϕ(scene, vehicle_index)
-    if Δlo > 0.0 || Δhi < 0.0 || Δlo == Δhi
-        scene[vehicle_index].state = state_orig
-        return 0.0
-    end
-    logprob_rev_trans += logpdf(Truncated(MH_transition[4], Δlo, Δhi), -Δ_propose[4])
-
-    if get_first_collision(scene, vehicle_index, mem).is_colliding
-        scene[vehicle_index].state = state_orig
-        return 0.0
-    end
-    scene[vehicle_index].state = state_orig
-
-    veh = scene[vehicle_index]
-    state_current = veh.state
-    log_p_current = evaluate_dot!(structure, vehicle_index, factors, scene, roadway, rec)
-    veh.state = state_propose
-    log_p_propose = evaluate_dot!(structure, vehicle_index, factors, scene, roadway, rec)
-    veh.state = state_orig
-
-    # min(1.0, p_propose / p_current)
-    min(1.0, exp(logprob_rev_trans - logprob_trans + log_p_propose - log_p_current))
-end
-function metropolis_hastings_step!(
-    scene::Scene,
-    structure::SceneStructure,
-    roadway::Roadway,
-    factors::Vector{SharedFactor},
-    MH_transition::MHTransition,
-    Δ_propose::Vector{Float64} = Array{Float64}(4), # preallocated memory
-    mem::CPAMemory = CPAMemory(),
-    rec::SceneRecord = SceneRecord(1, NaN),
-    )
-
-    #=
-    pick a random vehicle and shift it
-    =#
-
-    update!(rec, scene)
-    vehicle_index = draw_active_vehicle_index(scene, structure)
-    Δlo_s, Δhi_s = get_relative_variable_bounds_s(scene, structure, roadway, vehicle_index)
-    Δlo_t, Δhi_t = get_relative_variable_bounds_t(rec, roadway, vehicle_index)
-    Δlo_v, Δhi_v = get_relative_variable_bounds_v(scene, vehicle_index)
-    Δlo_ϕ, Δhi_ϕ = get_relative_variable_bounds_ϕ(scene, vehicle_index)
-
-    # use TruncatedNormals to enforce bounds
-    logprob_trans = 0.0
-    trunc_s = Truncated(MH_transition[1], Δlo_s, Δhi_s)
-    trunc_t = Truncated(MH_transition[2], Δlo_t, Δhi_t)
-    trunc_v = Truncated(MH_transition[3], Δlo_v, Δhi_v)
-    trunc_ϕ = Truncated(MH_transition[4], Δlo_ϕ, Δhi_ϕ)
-    Δ_propose[1] = rand(trunc_s)
-    Δ_propose[2] = rand(trunc_t)
-    Δ_propose[3] = rand(trunc_v)
-    Δ_propose[4] = rand(trunc_ϕ)
-    logprob_trans += logpdf(trunc_s, Δ_propose[1])
-    logprob_trans += logpdf(trunc_t, Δ_propose[2])
-    logprob_trans += logpdf(trunc_v, Δ_propose[3])
-    logprob_trans += logpdf(trunc_ϕ, Δ_propose[4])
-
-    state_propose = get_shifted_state(scene, structure, roadway, vehicle_index, Δ_propose)
-    if rand() ≤ calc_acceptance_probability(state_propose, vehicle_index, factors,
-                                            scene, rec, structure, roadway, mem, MH_transition,
-                                            logprob_trans, Δ_propose)
-        scene[vehicle_index].state = state_propose
+    # compute logP(a→b) and logP(b→a)
+    # use TruncatedNormals to help enforce bounds
+    logP_a2b = 0.0
+    logP_b2a = 0.0
+    for i in 1 : length(vars)
+        bounds = vars.bounds[i]
+        Pa2b = Truncated(vars.values[i] + a[i], bounds.Δlo + a[i], bounds.Δhi - a[i])
+        Δ = rand(Pa2b) # proposed transition for this variable
+        logP_a2b += logpdf(Pa2b, Δ)
+        b[i] = a[i] + Δ
+        Pb2a = Truncated(vars.values[i] + b[i], bounds.Δlo + b[i], bounds.Δhi - b[i])
+        logP_b2a += logpdf(Pb2a, -Δ)
+        @assert !isinf(logP_a2b)
+        @assert !isinf(logP_b2a)
     end
 
-    scene
+    # TODO: ensure that new state is acceptable to the graph
+
+    # calc acceptance probability
+    # - you need to add b into vars.values and then recover
+    vars.values .+= b
+    logPtilde_b = log_ptilde(gen.model.features, gen.model.weights, vars,
+                             factorgraph.assignments, factorgraph.roadway)
+    vars.values .-= b
+
+    logA = min(0, logPtilde_a - logPtilde_b + logP_b2a - logP_a2b)
+    A = exp(logA)
+
+    # see whether we accept
+    if rand() ≤ A
+        copy!(a, b)
+        logPtilde_a = logPtilde_b
+    end
+
+    return (a, logPtilde_a)
 end
 function metropolis_hastings!(
-    scene::Scene,
-    structure::SceneStructure,
-    roadway::Roadway,
-    factors::Vector{SharedFactor},
-    propsal_distribution::MHTransition,
-    n_steps::Int,
-    Δ_propose::Vector{Float64}=Array{Float64}(4), # preallocated memory
-    mem::CPAMemory=CPAMemory(),
-    rec::SceneRecord=SceneRecord(1, NaN),
+    gen::FactorGraphSceneGenerator{F},
+    factorgraph::FactorGraph{R};
+
+    n_steps::Int = gen.burnin,
+    a::Vector{Float64} = zeros(length(factorgraph.vars)),
+    b::Vector{Float64} = similar(a),
+    logPtilde_a::Float64 = begin
+        factorgraph.vars.values .+= a
+        logPtilde_a = log_ptilde(gen.model.features, gen.model.weights, factorgraph.vars,
+            factorgraph.assignments, factorgraph.roadway)
+        factorgraph.vars.values .-= a
+        return logPtilde_a
+    end,
     )
 
-    #=
-    Runs Metropolis Hastings for n steps
-    =#
-
     for i in 1 : n_steps
-        metropolis_hastings_step!(scene, structure, roadway, factors,
-                                  propsal_distribution, Δ_propose, mem)
+        (a, logPtilde_a) = metropolis_hastings_step!(gen, factorgraph, a, b, logPtilde_b)
     end
 
-    scene
-end
-
-function Distributions.sample(sg::SceneGenerator, dset::SceneStructureDataset)
-
-    starting_scene_index = rand(1:length(dset))
-    source = dset.sources[starting_scene_index]
-    scene, structure, roadway = get_scene_structure_and_roadway!(Scene(), dset, starting_scene_index)
-
-    metropolis_hastings!(scene, structure, roadway, sg.factors,
-                         sg.propsal_distribution, sg.burnin, sg.Δ_propose, sg.mem, sg.rec)
-
-    (scene, source, structure, roadway)
-end
-
-function Distributions.sample(N::Int, sg::SceneGenerator, dset::SceneStructureDataset)
-    sdset = SceneDataset()
-    for i in 1 : N
-        scene, source, structure, roadway = sample(sg, dset)
-        push!(sdset, scene, source, structure)
-    end
-    sdset
+    return factorgraph
 end

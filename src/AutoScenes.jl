@@ -11,6 +11,9 @@ import QuadGK: quadgk
 export
 
     #####################################
+    FactorGraph,
+    FactorModel,
+
     LeadFollowRelationships,
 
     StateBounds,
@@ -20,10 +23,6 @@ export
 
     Assignment,
     Assignments,
-
-    #####################################
-
-    FactorGraph,
 
     #####################################
     assign_feature,
@@ -37,7 +36,6 @@ export
     calc_expectation_x_given_other,
     log_ptilde,
     ptilde,
-
 
     #####################################
     # subscene_extraction
@@ -65,21 +63,8 @@ export
     next_sample!,
     pull_batch!,
 
-    # #####################################
-    # # SGA
-
-    # StochasticGradientAscentParams,
-    # GradientStepParams,
-    # GradientParams,
-    # PrintParams,
-
-    # alloc_grad_velocities,
-    # stochastic_gradient_ascent!,
-    # step!,
-    # parallel_step!,
-
-    # #####################################
-    # # sampling
+    #####################################
+    # sampling
 
     # SceneGenerator,
 
@@ -89,21 +74,17 @@ export
     # metropolis_hastings!,
     # sample
 
-    ##################################
-    # io
-
-    FactorModel
 
 include("utils.jl")
 include("factor_graphs.jl")
 include("features.jl")
+include("factormodel.jl")
 include("subscene_extraction.jl")
 include("learning.jl")
 include("batch_iterator.jl")
 # include("stochastic_gradient_ascent_params.jl")
-# include("sampling.jl")
-include("io.jl")
+include("sampling.jl")
 
-# include("viz/viz_scene_structures.jl")
+# include("viz_scene_structures.jl")
 
 end # module
