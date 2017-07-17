@@ -26,6 +26,7 @@ function metropolis_hastings_step!{F,R}(
     for i in 1 : length(vars)
         sym = vars.symbols[i]
         bounds = vars.bounds[i]
+
         Pa2b = Truncated(gen.Ts[sym], bounds.Δlo - a[i], bounds.Δhi - a[i])
         Δ = rand(Pa2b) # proposed transition for this variable
         logP_a2b += logpdf(Pa2b, Δ)
@@ -45,7 +46,7 @@ function metropolis_hastings_step!{F,R}(
                              factorgraph.assignments, factorgraph.roadway)
     vars.values .-= b
 
-    logA = min(0, logPtilde_a - logPtilde_b + logP_b2a - logP_a2b)
+    logA = logPtilde_b - logPtilde_a + logP_b2a - logP_a2b
     A = exp(logA)
 
     # see whether we accept
