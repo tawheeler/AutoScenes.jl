@@ -171,12 +171,3 @@ function log_pseudolikelihood_gradient!{F<:Tuple{Vararg{Function}}, R}(
     end
     return ∇
 end
-
-# #####################
-
-# function reset_weights!(factors::Vector{SharedFactor}, σ::Float64=1.0)
-#     for ϕ in factors
-#         copy!(ϕ.weights, σ*randn(Float64, length(ϕ.weights)))
-#     end
-#     factors
-# end
