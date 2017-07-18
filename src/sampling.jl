@@ -27,14 +27,16 @@ function metropolis_hastings_step!{F,R}(
         sym = vars.symbols[i]
         bounds = vars.bounds[i]
 
-        Pa2b = Truncated(gen.Ts[sym], bounds.Δlo - a[i], bounds.Δhi - a[i])
-        Δ = rand(Pa2b) # proposed transition for this variable
-        logP_a2b += logpdf(Pa2b, Δ)
-        b[i] = a[i] + Δ
-        Pb2a = Truncated(gen.Ts[sym], bounds.Δlo - b[i], bounds.Δhi - b[i])
-        logP_b2a += logpdf(Pb2a, -Δ)
-        @assert !isinf(logP_a2b)
-        @assert !isinf(logP_b2a)
+        if bounds != StateBounds(0.0,0.0) # todo: precompute this
+            Pa2b = Truncated(gen.Ts[sym], bounds.Δlo - a[i], bounds.Δhi - a[i])
+            Δ = rand(Pa2b) # proposed transition for this variable
+            logP_a2b += logpdf(Pa2b, Δ)
+            b[i] = a[i] + Δ
+            Pb2a = Truncated(gen.Ts[sym], bounds.Δlo - b[i], bounds.Δhi - b[i])
+            logP_b2a += logpdf(Pb2a, -Δ)
+            @assert !isinf(logP_a2b)
+            @assert !isinf(logP_b2a)
+        end
     end
 
     # TODO: ensure that new state is acceptable to the graph
@@ -48,6 +50,13 @@ function metropolis_hastings_step!{F,R}(
 
     logA = logPtilde_b - logPtilde_a + logP_b2a - logP_a2b
     A = exp(logA)
+
+    # @printf("prob accept %.3f -> %.3f = %.3f\n", a[1], b[1], A)
+    # println("logA: ", logA)
+    # println("logPtilde_a: ", logPtilde_a)
+    # println("logPtilde_b: ", logPtilde_b)
+    # println("logP_b2a: ", logP_b2a)
+    # println("logP_a2b: ", logP_a2b)
 
     # see whether we accept
     if rand() ≤ A
@@ -63,7 +72,7 @@ function metropolis_hastings!{F,R}(
 
     n_steps::Int = gen.burnin,
     a::Vector{Float64} = zeros(length(factorgraph.vars)),
-    b::Vector{Float64} = similar(a),
+    b::Vector{Float64} = zeros(length(factorgraph.vars)),
     logPtilde_a::Float64 = begin
         factorgraph.vars.values .+= a
         logPtilde_a = log_ptilde(gen.model.features, gen.model.weights, factorgraph.vars,
