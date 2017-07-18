@@ -15,3 +15,7 @@ let
     nbinclude(Pkg.dir("AutoScenes", "docs", "OneFloatSampling.ipynb"))
 end
 
+let
+    nbinclude(Pkg.dir("AutoScenes", "docs", "HeadwaySampling.ipynb"))
+end
+
