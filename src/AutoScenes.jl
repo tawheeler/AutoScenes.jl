@@ -20,6 +20,8 @@ export
     StateBounds,
     domain_size,
 
+    ZERO_BOUND,
+
     Vars,
 
     Assignment,

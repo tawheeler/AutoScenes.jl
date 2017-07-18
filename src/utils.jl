@@ -44,6 +44,7 @@ struct StateBounds
     Δlo::Float64
     Δhi::Float64
 end
+const ZERO_BOUND = StateBounds(0.0,0.0)
 domain_size(bounds::StateBounds) = bounds.Δhi - bounds.Δlo
 Distributions.Uniform(bounds::StateBounds) = Uniform(bounds.Δlo, bounds.Δhi)
 
@@ -70,9 +71,7 @@ end
 
 ####
 
-# const Assignment = Tuple{Vararg{Int}}
-# const Assignment = Union{Tuple{Int}, Tuple{Int,Int}}
-const Assignment = Tuple{Int,Int}
+const Assignment = Tuple{Vararg{Int}}
 const Assignments = Vector{Tuple{Int, Assignment}} # vector of {feature index + assignment}
 
 # const BOUNDS_ϕ = (deg2rad(-30),deg2rad(30))

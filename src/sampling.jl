@@ -27,7 +27,7 @@ function metropolis_hastings_step!{F,R}(
         sym = vars.symbols[i]
         bounds = vars.bounds[i]
 
-        if bounds != StateBounds(0.0,0.0) # todo: precompute this
+        if bounds != ZERO_BOUND # todo: precompute this
             Pa2b = Truncated(gen.Ts[sym], bounds.Δlo - a[i], bounds.Δhi - a[i])
             Δ = rand(Pa2b) # proposed transition for this variable
             logP_a2b += logpdf(Pa2b, Δ)
