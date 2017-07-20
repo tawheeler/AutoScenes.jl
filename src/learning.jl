@@ -16,7 +16,7 @@ function log_pseudolikelihood{F<:Tuple{Vararg{Function}}, R}(
     retval = 0.0
     # loop through variables
     for (var_index, scope) in enumerate(scopes)
-        if !isempty(scope)
+        if !isempty(scope) && vars.bounds[var_index] != ZERO_BOUND
 
             # the positive term
             for assignment_index in scope
@@ -77,9 +77,11 @@ function log_pseudolikelihood_derivative_single{F<:Tuple{Vararg{Function}}, R}(
     pos_term = f(vars, assignment, roadway) # the positive term
     retval = 0.0
     for var_index in assignment
-        # the negative term
-        neg_term = calc_expectation_x_given_other(assignment_index, var_index, features, θ, vars, assignments, scopes, roadway, nsamples)
-        retval += pos_term - neg_term
+        if vars.bounds[var_index] != ZERO_BOUND
+            # the negative term
+            neg_term = calc_expectation_x_given_other(assignment_index, var_index, features, θ, vars, assignments, scopes, roadway, nsamples)
+            retval += pos_term - neg_term
+        end
     end
 
     return retval

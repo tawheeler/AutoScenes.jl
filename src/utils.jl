@@ -57,6 +57,7 @@ struct Vars
     symbols::Vector{Symbol} # symbol associated with each variable; for convenience [:v, :ϕ, ...]
     vehicle_indices::Vector{Int} # index of the vehicle in the scene that each variable corresponds to
 end
+Vars(n::Int) = Vars(Array{Float64}(n), Array{StateBounds}(n), Array{Symbol}(n), Array{Int}(n))
 Base.length(vars::Vars) = length(vars.values)
 function Base.findfirst(vars::Vars, vehicle_index::Int, sym::Symbol)
     for i in 1 : length(vars)
