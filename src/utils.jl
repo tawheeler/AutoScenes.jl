@@ -43,6 +43,12 @@ end
 struct StateBounds
     Δlo::Float64
     Δhi::Float64
+
+    function StateBounds(Δlo::Real, Δhi::Real)
+        @assert Δlo ≤ 0
+        @assert Δhi ≥ 0
+        new(convert(Float64, Δlo), convert(Float64, Δhi))
+    end
 end
 const ZERO_BOUND = StateBounds(0.0,0.0)
 domain_size(bounds::StateBounds) = bounds.Δhi - bounds.Δlo
@@ -59,11 +65,17 @@ struct Vars
 end
 Vars(n::Int) = Vars(Array{Float64}(n), Array{StateBounds}(n), Array{Symbol}(n), Array{Int}(n))
 Base.length(vars::Vars) = length(vars.values)
+function Base.push!(vars::Vars, value::Float64, bound::StateBounds, sym::Symbol, vehicle_index::Int)
+    push!(vars.values, value)
+    push!(vars.bounds, bound)
+    push!(vars.symbols, sym)
+    push!(vars.vehicle_indices, vehicle_index)
+    return vars
+end
 function Base.findfirst(vars::Vars, vehicle_index::Int, sym::Symbol)
     for i in 1 : length(vars)
         if vars.vehicle_indices[i] == vehicle_index &&
            vars.symbols[i] == sym
-
            return i
         end
     end

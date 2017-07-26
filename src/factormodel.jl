@@ -15,7 +15,7 @@ end
 
 macro load_factor_model(filename)
     ex = quote
-        return open($filename, "r") do io
+        open($filename, "r") do io
             features = Tuple(eval(parse(str)) for str in split(readline(io)))
             weights = [parse(Float64, s) for s in split(readline(io))]
             FactorModel(features, weights)
