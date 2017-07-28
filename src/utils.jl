@@ -65,8 +65,8 @@ struct Vars
 end
 Vars(n::Int) = Vars(Array{Float64}(n), Array{StateBounds}(n), Array{Symbol}(n), Array{Int}(n))
 Base.length(vars::Vars) = length(vars.values)
-function Base.push!(vars::Vars, value::Float64, bound::StateBounds, sym::Symbol, vehicle_index::Int)
-    push!(vars.values, value)
+function Base.push!(vars::Vars, value::Real, bound::StateBounds, sym::Symbol, vehicle_index::Int)
+    push!(vars.values, convert(Float64, value))
     push!(vars.bounds, bound)
     push!(vars.symbols, sym)
     push!(vars.vehicle_indices, vehicle_index)

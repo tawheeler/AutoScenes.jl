@@ -6,6 +6,7 @@ using AutomotiveDrivingModels
 using AutoViz
 using Distributions
 using Vec
+using Discretizers
 import QuadGK: quadgk
 
 export
@@ -69,11 +70,16 @@ export
     #####################################
     # sampling
 
-    # adheres_to_structure,
-    # calc_acceptance_probability,
     metropolis_hastings_step!,
-    metropolis_hastings!
-    # sample
+    metropolis_hastings!,
+
+    #####################################
+    # metrics
+
+    KLDivMetric,
+    assign_metric,
+    get_counts,
+    kullbeck_leibler_divergence
 
 
 include("utils.jl")
@@ -83,8 +89,8 @@ include("factormodel.jl")
 include("subscene_extraction.jl")
 include("learning.jl")
 include("batch_iterator.jl")
-# include("stochastic_gradient_ascent_params.jl")
 include("sampling.jl")
+include("metrics.jl")
 
 # include("viz_scene_structures.jl")
 
