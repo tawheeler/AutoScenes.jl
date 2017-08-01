@@ -36,6 +36,22 @@ function get_counts{F,S,D,I,R}(metric::KLDivMetric{F}, rec::ListRecord{S,D,I}, r
 
     return counts
 end
+function get_counts{F,S,D,I,R}(metric::KLDivMetric{F}, scenes::Vector{EntityFrame{S,D,I}}, roadway::R)
+
+    f, disc = metric.f, metric.disc
+    counts = zeros(Int, nlabels(disc))
+
+    for scene in scenes
+        for vehicle_indices in assign_metric(f, scene, roadway) # assignments in scene
+            fval = f(scene, vehicle_indices, roadway)
+            if is_feature_valid(fval)
+                counts[encode(disc, convert(Float64, fval))] += 1
+            end
+        end
+    end
+
+    return counts
+end
 
 """
     kullbeck_leibler_divergence(countsP, countsQ, disc)

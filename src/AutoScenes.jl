@@ -16,8 +16,6 @@ export
     FactorModel,
     FactorGraphSceneGenerator,
 
-    LeadFollowRelationships,
-
     StateBounds,
     domain_size,
 
