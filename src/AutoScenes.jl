@@ -90,6 +90,4 @@ include("batch_iterator.jl")
 include("sampling.jl")
 include("metrics.jl")
 
-# include("viz_scene_structures.jl")
-
 end # module
