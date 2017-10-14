@@ -2,8 +2,8 @@
 Extract the subscene consisting of all vehicles whose centers are inside of the oriented bounding box
 """
 function extract_subscene!(
-    subscene::EntityFrame{VehicleState, BoundingBoxDef, Int},
-    scene::EntityFrame{VehicleState, BoundingBoxDef, Int},
+    subscene::EntityFrame{RoadwayState, BoundingBoxDef, Int},
+    scene::EntityFrame{RoadwayState, BoundingBoxDef, Int},
     region::OBB,
     )
 
@@ -20,7 +20,7 @@ end
 """
 Returns the number of vehicles that lie upstream, in, and downstream of the scene
 """
-function get_num_vehicles_upstream_in_and_downstream(scene::EntityFrame{VehicleState, BoundingBoxDef, Int}, region::OBB)
+function get_num_vehicles_upstream_in_and_downstream(scene::EntityFrame{RoadwayState, BoundingBoxDef, Int}, region::OBB)
 
     n_upstream = 0
     n_in = 0
